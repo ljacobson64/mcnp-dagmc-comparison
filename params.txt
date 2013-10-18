@@ -1,0 +1,4 @@
+N_vals     10 20 40 100
+F_vals     0.001 50 99.999
+geom_types 2s 2j
+ctme       0.1
