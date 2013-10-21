@@ -1,6 +1,7 @@
 from subprocess import call
 import os
 
+# Write input file; 2 dimensions with separate cells
 def write_mcnp_input_2s(filename,N,F,ctme):
 	
     writer = open(filename,'w')
@@ -12,29 +13,29 @@ def write_mcnp_input_2s(filename,N,F,ctme):
     
     # Write cell cards
     print >> writer, 'c CELL CARDS'
-    print >> writer, '   11 0 -09000'                             # Outside cube
-    print >> writer, '   12 0  09999'                             # Outside cube
-    print >> writer, '   13 0  09000 -09999 -01000'               # Outside cube
-    print >> writer, '   14 0  09000 -09999  04999'               # Outside cube
-    print >> writer, '   15 0  09000 -09999  01000 -04999 -05000' # Outside cube
-    print >> writer, '   16 0  09000 -09999  01000 -04999  08999' # Outside cube
+    print >> writer, '   11 0        -09000'
+    print >> writer, '   12 0  09999'
+    print >> writer, '   13 0  09000 -09999        -01000'
+    print >> writer, '   14 0  09000 -09999  04999'
+    print >> writer, '   15 0  09000 -09999  01000 -04999 -05000'
+    print >> writer, '   16 0  09000 -09999  01000 -04999  08999'
     print >> writer, '    1 0  09000 -09999  %u -04999  %u -08999' % (10000+N,50000+N)
     print >> writer, '    2 0  09000 -09999  01000 -%u  %u -08999' % (10000+N,50000+N)
     print >> writer, '    3 0  09000 -09999  %u -04999  05000 -%u' % (10000+N,50000+N)
     for j in range(1,N):
         print >> writer, '%u 0  09000 -09999  %u -%u  %u -%u' % (10000+j,10000+j,10000+N,50000+N-j,50000+N-j+1)
         print >> writer, '%u 0  09000 -09999  01000 -%u  %u -%u' % (50000+j,10000+j,50000+N-j,50000+N-j+1)
-    print >> writer, '%u 0  09000 -09999  01000 -%u  05000 -%u' % (50000+N,10000+N,50000+N-N+1)
+    print >> writer, '%u 0  09000 -09999  01000 -%u  05000 -50001' % (50000+N,10000+N)
     print >> writer, ''
     
     # Write surface cards
     print >> writer, 'c SURFACE CARDS'
     print >> writer, '01000 PX 0'
     print >> writer, '05000 PY 0'
-    print >> writer, '09000 PZ 0'   # bottom side
+    print >> writer, '09000 PZ 0'
     print >> writer, '04999 PX 100'
     print >> writer, '08999 PY 100'
-    print >> writer, '09999 PZ 100' # top side
+    print >> writer, '09999 PZ 100'
     for j in range(1,N+1):
         print >> writer, '%u PX %11.8f' % (10000+j,F*j/N)
         print >> writer, '%u PY %11.8f' % (50000+j,F*j/N)
@@ -45,10 +46,11 @@ def write_mcnp_input_2s(filename,N,F,ctme):
     print >> writer, 'MODE N'
     print >> writer, 'IMP:N 0 5R 1 %uR' % (2*N+1)
     print >> writer, 'SDEF X=99.9999 Y=99.9999 Z=99.9999'
-    print >> writer, 'CTME %f' % ctme
+    print >> writer, 'CTME %f' % (ctme)
     
     writer.close()
 
+# Write input file; 2 dimensions and joined cells
 def write_mcnp_input_2j(filename,N,F,ctme):
 	
     writer = open(filename,'w')
@@ -87,7 +89,8 @@ def write_mcnp_input_2j(filename,N,F,ctme):
     
     writer.close()
 
-def parse_output_file(filename,N,F,filename_results):
+# Parse output files for CTM and NPS
+def parse_output_file(filename,N,F,geom_type,filename_res):
     
     reader = open(filename+'o','r')
     
@@ -108,14 +111,14 @@ def parse_output_file(filename,N,F,filename_results):
     ctm_str = lines[ctm_loc+5:ctm_loc+18]
     ctm = float(ctm_str)
     
-    writer = open(filename_results,'a')
+    writer = open(filename_res,'a')
     
     # Write NPS to text file
     if writer.tell() == 0:
-        print >> writer, '|-------|-----|-------|----------|'
-        print >> writer, '|   N   |  F  |  ctm  |   nps    |'
-        print >> writer, '|-------|-----|-------|----------|'
-    print >> writer, '| %5u | %3.0f | %5.2f | %8u |' % (N,F,ctm,nps)
+        print >> writer, '|------|-------|-----|-------|----------|'
+        print >> writer, '| type |   N   |  F  |  ctm  |   nps    |'
+        print >> writer, '|------|-------|-----|-------|----------|'
+    print >> writer, '|  %s  | %5u | %3.0f | %5.2f | %8u |' % (geom_type,N,F,ctm,nps)
     
     writer.close()
 
@@ -125,40 +128,43 @@ def parse_output_file(filename,N,F,filename_results):
 reader = open('params.txt','r')
 params = reader.readlines()
 
-N_vals     = [  int(i) for i in params[0].split()[1:]]
-F_vals     = [float(i) for i in params[1].split()[1:]]
-geom_types =                    params[2].split()[1:]
-ctme       =  float(            params[3].split()[1 ])
+N_vals     = [  int(i) for i in params[0].split()[1:]]                         # list of values of N
+F_vals     = [float(i) for i in params[1].split()[1:]]                         # list of values of F
+geom_types =                    params[2].split()[1:]                          # list of geometry configurations
+ctme       =  float(            params[3].split()[1 ])                         # computer time
 
 reader.close()
 
 # Delete all old files
-[os.remove(f) for f in os.listdir('.') if f.startswith('Cube_')]
+for f in os.listdir('.'):
+    if f.startswith('Cube_'):
+        os.remove(f)
 
-for geom_type in geom_types:
-    for N in N_vals:
-        for F in F_vals:
+# Write input files, run MCNP, parse output
+for geom_type in geom_types:                                                   # loop for all geometry configurations
+    for N in N_vals:                                                           # loop for all values of N
+        for F in F_vals:                                                       # loop for all values of F
             
             # Write MCNP input file
-            filename = 'Cube_%s_%u_%.0f.i' % (geom_type,N,F)
-            if geom_type=='2s': write_mcnp_input_2s(filename,N,F,ctme)
-            if geom_type=='2j': write_mcnp_input_2j(filename,N,F,ctme)
+            filename = 'Cube_%s_%u_%.0f.i' % (geom_type,N,F)                   # input filename
+            if geom_type=='2s':                                                # 2 dimensions with separate cells
+                write_mcnp_input_2s(filename,N,F,ctme)                         # write input file
+            if geom_type=='2j':                                                # 2 dimensions with joined cells
+                write_mcnp_input_2j(filename,N,F,ctme)                         # write input file
             
             # Run MCNP
-            mcnp_exec_str = 'mcnp5 n=%s' % (filename)
-            print mcnp_exec_str
-            call(mcnp_exec_str,shell=True)
-            os.remove(filename+'r')
+            mcnp_exec_str = 'mcnp5 n=%s' % (filename)                          # MCNP5 execution command
+            print mcnp_exec_str                                                # print MCNP5 execution command
+            call(mcnp_exec_str,shell=True)                                     # run MCNP5
+            call('rm %sr' % (filename),shell=True)                             # remove runtpe files
             
             # Parse MCNP output file
-            filename_results = 'Cube_%s_results.txt' % geom_type
-            parse_output_file(filename,N,F,filename_results)
+            parse_output_file(filename,N,F,geom_type,'Cube_results.txt')       # parse output file for CTM and NPS
 
-for geom_type in geom_types:
-    filename_results = 'Cube_%s_results.txt' % geom_type
-    f = open(filename_results,'r')
-    print f.read()
-    f.close()
+# Display output in command window
+f = open('Cube_results.txt','r')
+print f.read()
+f.close()
 
 
 
