@@ -50,7 +50,7 @@ def write_mcnp_input_2s(filename,N,F,ctme):
     
     writer.close()
 
-# Write input file; 2 dimensions and joined cells
+# Write input file; 2 dimensions with joined cells
 def write_mcnp_input_2j(filename,N,F,ctme):
 	
     writer = open(filename,'w')
@@ -106,19 +106,24 @@ def parse_output_file(filename,N,F,geom_type,filename_res):
     nps_str = lines[nps_loc+5:nps_loc+20]
     nps = int(nps_str)
     
-    # Find CTM
-    ctm_loc = str.find(lines,'ctm')
-    ctm_str = lines[ctm_loc+5:ctm_loc+18]
-    ctm = float(ctm_str)
+    # Find CTM 1
+    ctm1_loc = str.find(lines,'ctm')
+    ctm1_str = lines[ctm1_loc+5:ctm1_loc+18]
+    ctm1 = float(ctm1_str)
     
+    # Find CTM 2
+    ctm2_loc = str.find(lines,'time =')
+    ctm2_str = lines[ctm2_loc+6:ctm2_loc+15]
+    ctm2 = float(ctm2_str)
+
     writer = open(filename_res,'a')
     
     # Write NPS to text file
     if writer.tell() == 0:
-        print >> writer, '|------|-------|-----|-------|----------|'
-        print >> writer, '| type |   N   |  F  |  ctm  |   nps    |'
-        print >> writer, '|------|-------|-----|-------|----------|'
-    print >> writer, '|  %s  | %5u | %3.0f | %5.2f | %8u |' % (geom_type,N,F,ctm,nps)
+        print >> writer, '|------|-------|-----|-------|-------|----------|'
+        print >> writer, '| type |   N   |  F  | ctm1  | ctm2  |   nps    |'
+        print >> writer, '|------|-------|-----|-------|-------|----------|'
+    print >> writer, '|  %s  | %5u | %3.0f | %5.2f | %5.2f | %8u |' % (geom_type,N,F,ctm1,ctm2,nps)
     
     writer.close()
 
@@ -134,11 +139,6 @@ geom_types =                    params[2].split()[1:]                          #
 ctme       =  float(            params[3].split()[1 ])                         # computer time
 
 reader.close()
-
-# Delete all old files
-for f in os.listdir('.'):
-    if f.startswith('Cube_'):
-        os.remove(f)
 
 # Write input files, run MCNP, parse output
 for geom_type in geom_types:                                                   # loop for all geometry configurations
@@ -165,7 +165,3 @@ for geom_type in geom_types:                                                   #
 f = open('Cube_results.txt','r')
 print f.read()
 f.close()
-
-
-
-
