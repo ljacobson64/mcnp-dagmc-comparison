@@ -3,8 +3,9 @@ import os
 
 # Write input file; 2 dimensions with separate cells
 def write_mcnp_input_2s(filename,N,F,ctme):
-	
-    writer = open(filename,'w')
+    
+    filename_i = '%s.i' % (filename)
+    writer = open(filename_i,'w')
     
     # Write title cards
     print >> writer, 'Small geometric features test'
@@ -53,7 +54,8 @@ def write_mcnp_input_2s(filename,N,F,ctme):
 # Write input file; 2 dimensions with joined cells
 def write_mcnp_input_2j(filename,N,F,ctme):
 	
-    writer = open(filename,'w')
+    filename_i = '%s.i' % (filename)
+    writer = open(filename_i,'w')
     
     # Write title cards
     print >> writer, 'Small geometric features test'
@@ -97,43 +99,75 @@ def write_mcnp_input_2j(filename,N,F,ctme):
     
     writer.close()
 
-# Parse output files for CTM and NPS
-def parse_output_file(filename,N,F,geom_type,filename_res):
+# Write job script
+def write_job_script(filename):
     
-    reader = open(filename+'o','r')
+    filename_j = '%s.sh' % (filename)
+    writer = open(filename_j,'w')
     
-    # Grab last 512 bytes
-    reader.seek(0,2)
-    reader.seek(max(reader.tell()-512,0),0)
-    lines = reader.read()
-    
-    reader.close()
-    
-    # Find NPS
-    nps_loc = str.find(lines,'nps')
-    nps_str = lines[nps_loc+5:nps_loc+20]
-    nps = int(nps_str)
-    
-    # Find CTM 1
-    ctm1_loc = str.find(lines,'ctm')
-    ctm1_str = lines[ctm1_loc+5:ctm1_loc+18]
-    ctm1 = float(ctm1_str)
-    
-    # Find CTM 2
-    ctm2_loc = str.find(lines,'time =')
-    ctm2_str = lines[ctm2_loc+6:ctm2_loc+15]
-    ctm2 = float(ctm2_str)
-
-    writer = open(filename_res,'a')
-    
-    # Write NPS to text file
-    if writer.tell() == 0:
-        print >> writer, '|------|-------|-----|-------|-------|----------|'
-        print >> writer, '| type |   N   |  F  | ctm1  | ctm2  |   nps    |'
-        print >> writer, '|------|-------|-----|-------|-------|----------|'
-    print >> writer, '|  %s  | %5u | %3.0f | %5.2f | %5.2f | %8u |' % (geom_type,N,F,ctm1,ctm2,nps)
+    print >> writer, '#!/bin/bash'
+    print >> writer, 'get_until_got(){' 
+    print >> writer, 'wget  -c -t 5 --waitretry=20 --read-timeout=10 $1 '
+    print >> writer, 'while [[ $? != 0 ]]'
+    print >> writer, 'do'
+    print >> writer, 'wget $1'
+    print >> writer, 'done'
+    print >> writer, '}'
+    print >> writer, ''
+    print >> writer, '# Determine absolute path'
+    print >> writer, 'cwd=$PWD'
+    print >> writer, ''
+    print >> writer, '# Get and set the gcc compiler suite and set ld and paths'
+    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/lucasj/compiler_tools.tar.gz' 
+    print >> writer, ''
+    print >> writer, '# Unpack compiler tools'
+    print >> writer, 'tar -zxf compiler_tools.tar.gz '
+    print >> writer, ''
+    print >> writer, '# Set library paths'
+    print >> writer, 'export LD_LIBRARY_PATH=$cwd/compiler/gcc-4.8.1/lib:$cwd/compiler/gcc-4.8.1/lib64:$cwd/compiler/gmp-5.1.2/lib:$cwd/compiler/mpc-1.0.1/lib:$cwd/compiler/mpfr-3.1.2/lib  '
+    print >> writer, ''
+    print >> writer, '# Get and set the MOAB and HDF5 libs' 
+    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/moab_tools.tar.gz '
+    print >> writer, ''
+    print >> writer, '# set the MOAB path'
+    print >> writer, 'tar -zxf moab_tools.tar.gz '
+    print >> writer, 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$cwd/moab_tools/hdf5-1.8.4/lib'
+    print >> writer, 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$cwd/moab_tools/moab-4.6.0/lib' 
+    print >> writer, ''
+    print >> writer, '# Get and set the required MCNP5 paths '
+    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/mcnp5.tar.gz '
+    print >> writer, 'mkdir mcnp5 '
+    print >> writer, 'cp mcnp5.tar.gz mcnp5/.' 
+    print >> writer, 'cd mcnp5 '
+    print >> writer, 'tar -zxf mcnp5.tar.gz' 
+    print >> writer, 'cd .. '
+    print >> writer, 'export PATH=$cwd/mcnp5:$PATH '
+    print >> writer, ''
+    print >> writer, 'get_until_got %s.i' % (filename)
+    print >> writer, 'mcnp5 i=%s.i o=%s.io' % (filename,filename)
+    print >> writer, 'ls | grep -v %s.io | xargs rm -rf' % (filename)
     
     writer.close()
+    
+# Write command file
+def write_command_file(filename):
+    
+    filename_c = '%s.cmd' % (filename)
+    writer = open(filename_c,'w')
+    
+    print >> writer, 'executable = %s.sh' % (filename)
+    print >> writer, ''
+    print >> writer, 'copy_to_spool = false' 
+    print >> writer, 'should_transfer_files = yes' 
+    print >> writer, 'when_to_transfer_output = on_exit' 
+    print >> writer, 'output = %s.out' % (filename)
+    print >> writer, 'log = %s.log' % (filename)
+    print >> writer, 'error = %s.err' % (filename)
+    print >> writer, 'transfer_input_files = %s.sh' % (filename)
+    print >> writer, '+AccountingGroup = EngrPhysics_Wilson' 
+    print >> writer, 'Queue'
+    
+    writer. close()
 
 # MAIN SCRIPT
 
@@ -148,27 +182,22 @@ ctme       =  float(            params[3].split()[1 ])                         #
 
 reader.close()
 
-# Write input files, run MCNP, parse output
+# Write input files and job scripts
 for geom_type in geom_types:                                                   # loop for all geometry configurations
     for N in N_vals:                                                           # loop for all values of N
         for F in F_vals:                                                       # loop for all values of F
             
+            filename = 'Cube_%s_%u_%.0f' % (geom_type,N,F)                     # Base filename (no extension) 
+            
             # Write MCNP input file
-            filename = 'Cube_%s_%u_%.0f.i' % (geom_type,N,F)                   # input filename
             if geom_type=='2s':                                                # 2 dimensions with separate cells
                 write_mcnp_input_2s(filename,N,F,ctme)                         # write input file
             if geom_type=='2j':                                                # 2 dimensions with joined cells
                 write_mcnp_input_2j(filename,N,F,ctme)                         # write input file
             
-            # Run MCNP
-            mcnp_exec_str = 'mcnp5 n=%s' % (filename)                          # MCNP5 execution command
-            print mcnp_exec_str                                                # print MCNP5 execution command
-            call(mcnp_exec_str,shell=True)                                     # run MCNP5
+            # Write job script
+            write_job_script(filename)                                         # write job script
             
-            # Parse MCNP output file
-            parse_output_file(filename,N,F,geom_type,'Cube_results.txt')       # parse output file for CTM and NPS
-
-# Display output in command window
-f = open('Cube_results.txt','r')
-print f.read()
-f.close()
+            # Write command file
+            write_command_file(filename)                                       # write command file
+            
