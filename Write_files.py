@@ -1,6 +1,3 @@
-from subprocess import call
-import os
-
 # Write input file; 2 dimensions with separate cells
 def write_mcnp_input_2s(filename,N,F,ctme):
     
