@@ -115,32 +115,32 @@ def write_job_script(filename):
     print >> writer, 'cwd=$PWD'
     print >> writer, ''
     print >> writer, '# Get and set the gcc compiler suite and set ld and paths'
-    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/lucasj/compiler_tools.tar.gz' 
+    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/compiler_tools.tar.gz' 
     print >> writer, ''
     print >> writer, '# Unpack compiler tools'
     print >> writer, 'tar -zxf compiler_tools.tar.gz '
     print >> writer, ''
     print >> writer, '# Set library paths'
-    print >> writer, 'export LD_LIBRARY_PATH=$cwd/compiler/gcc-4.8.1/lib:$cwd/compiler/gcc-4.8.1/lib64:$cwd/compiler/gmp-5.1.2/lib:$cwd/compiler/mpc-1.0.1/lib:$cwd/compiler/mpfr-3.1.2/lib  '
+    print >> writer, 'export LD_LIBRARY_PATH=$cwd/compiler/gcc-4.8.1/lib:$cwd/compiler/gcc-4.8.1/lib64:$cwd/compiler/gmp-5.1.2/lib:$cwd/compiler/mpc-1.0.1/lib:$cwd/compiler/mpfr-3.1.2/lib'
     print >> writer, ''
     print >> writer, '# Get and set the MOAB and HDF5 libs' 
-    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/moab_tools.tar.gz '
+    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/moab_tools.tar.gz'
     print >> writer, ''
     print >> writer, '# set the MOAB path'
-    print >> writer, 'tar -zxf moab_tools.tar.gz '
+    print >> writer, 'tar -zxf moab_tools.tar.gz'
     print >> writer, 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$cwd/moab_tools/hdf5-1.8.4/lib'
     print >> writer, 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$cwd/moab_tools/moab-4.6.0/lib' 
     print >> writer, ''
-    print >> writer, '# Get and set the required MCNP5 paths '
-    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/mcnp5.tar.gz '
-    print >> writer, 'mkdir mcnp5 '
+    print >> writer, '# Get and set the required MCNP5 paths'
+    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/mcnp5.tar.gz'
+    print >> writer, 'mkdir mcnp5'
     print >> writer, 'cp mcnp5.tar.gz mcnp5/.' 
     print >> writer, 'cd mcnp5 '
     print >> writer, 'tar -zxf mcnp5.tar.gz' 
     print >> writer, 'cd .. '
-    print >> writer, 'export PATH=$cwd/mcnp5:$PATH '
+    print >> writer, 'export PATH=$cwd/mcnp5:$PATH'
     print >> writer, ''
-    print >> writer, 'get_until_got %s.i' % (filename)
+    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/%s.i' % (filename)
     print >> writer, 'mcnp5 i=%s.i o=%s.io' % (filename,filename)
     print >> writer, 'ls | grep -v %s.io | xargs rm -rf' % (filename)
     
@@ -179,22 +179,32 @@ ctme       =  float(            params[3].split()[1 ])                         #
 
 reader.close()
 
+max_N_2s = 40000
+max_N_2j =  3330
+
 # Write input files and job scripts
 for geom_type in geom_types:                                                   # loop for all geometry configurations
     for N in N_vals:                                                           # loop for all values of N
         for F in F_vals:                                                       # loop for all values of F
             
-            filename = 'Cube_%s_%u_%.0f' % (geom_type,N,F)                     # Base filename (no extension) 
+            if geom_type == '2s':
+                valid_N = N <= max_N_2s
+            if geom_type == '2j':
+            	valid_N = N <= max_N_2j
             
-            # Write MCNP input file
-            if geom_type=='2s':                                                # 2 dimensions with separate cells
-                write_mcnp_input_2s(filename,N,F,ctme)                         # write input file
-            if geom_type=='2j':                                                # 2 dimensions with joined cells
-                write_mcnp_input_2j(filename,N,F,ctme)                         # write input file
-            
-            # Write job script
-            write_job_script(filename)                                         # write job script
-            
-            # Write command file
-            write_command_file(filename)                                       # write command file
-            
+            if valid_N:
+                
+                filename = 'zCube_%s_%u_%.0f' % (geom_type,N,F)                     # base filename (no extension) 
+                
+                # Write MCNP input file
+                if geom_type == '2s':                                              # 2 dimensions with separate cells
+                    write_mcnp_input_2s(filename,N,F,ctme)                         # write input file
+                if geom_type == '2j':                                              # 2 dimensions with joined cells
+                    write_mcnp_input_2j(filename,N,F,ctme)                         # write input file
+                
+                # Write job script
+                write_job_script(filename)                                         # write job script
+                
+                # Write command file
+                write_command_file(filename)                                       # write command file
+

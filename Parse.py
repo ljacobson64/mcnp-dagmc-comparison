@@ -55,10 +55,17 @@ for geom_type in geom_types:                                                   #
     for N in N_vals:                                                           # loop for all values of N
         for F in F_vals:                                                       # loop for all values of F
             
-            filename = 'Cube_%s_%u_%.0f' % (geom_type,N,F)                     # Base filename (no extension)
-                        
-            # Parse MCNP output file
-            parse_output_file(filename,N,F,geom_type,'Cube_results.txt')       # parse output file for CTM and NPS
+            if geom_type == '2s':
+                valid_N = N <= max_N_2s
+            if geom_type == '2j':
+                valid_N = N <= max_N_2j
+            
+            if valid_N:
+                
+                filename = 'Cube_%s_%u_%.0f' % (geom_type,N,F)                     # Base filename (no extension)
+                
+                # Parse MCNP output file
+                parse_output_file(filename,N,F,geom_type,'Cube_results.txt')       # parse output file for CTM and NPS
 
 # Display output in command window
 f = open('Cube_results.txt','r')

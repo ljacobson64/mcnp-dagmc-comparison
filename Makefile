@@ -2,4 +2,4 @@ all:
 	python Write_files.py
 
 clean:
-	rm -f Cube_* comou* out* fort*
+	rm -f zCube_* comou* out* fort*
