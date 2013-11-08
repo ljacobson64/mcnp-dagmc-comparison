@@ -1,8 +1,10 @@
 write:
 	python Write_files.py
 
-submit:
-	sh submit_jobs.sh
+copy:
+	scp *.i   ljjacobson@submit.chtc.wisc.edu:/squid/ljjacobson/
+	scp *.sh  ljjacobson@submit.chtc.wisc.edu:~/surface_study/
+	scp *.cmd ljjacobson@submit.chtc.wisc.edu:~/surface_study/
 
 retrieve:
 	rsync --ignore-existing ljjacobson@submit.chtc.wisc.edu:"~/surface_study/*.io ~/surface_study/*.log" .
