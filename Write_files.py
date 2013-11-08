@@ -161,6 +161,7 @@ def write_command_file(filename):
     print >> writer, 'log = %s.log' % (filename)
     print >> writer, 'error = %s.err' % (filename)
     print >> writer, 'transfer_input_files = %s.sh' % (filename)
+    print >> writer, 'request_cpus = 16'
     print >> writer, '+AccountingGroup = EngrPhysics_Wilson' 
     print >> writer, 'Queue'
     
@@ -180,7 +181,7 @@ ctme       =  float(            params[3].split()[1 ])                         #
 reader.close()
 
 max_N_2s = 40000
-max_N_2j =  3330
+max_N_2j =   400  # works up to 3300 but takes too long
 
 # Write input files and job scripts
 for geom_type in geom_types:                                                   # loop for all geometry configurations
@@ -190,7 +191,7 @@ for geom_type in geom_types:                                                   #
             if geom_type == '2s':
                 valid_N = N <= max_N_2s
             if geom_type == '2j':
-            	valid_N = N <= max_N_2j
+                valid_N = N <= max_N_2j
             
             if valid_N:
                 
@@ -207,4 +208,6 @@ for geom_type in geom_types:                                                   #
                 
                 # Write command file
                 write_command_file(filename)                                       # write command file
+                
+                print filename
 

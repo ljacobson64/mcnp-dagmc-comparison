@@ -56,7 +56,7 @@ ctme       =  float(            params[3].split()[1 ])                         #
 reader.close()
 
 max_N_2s = 40000
-max_N_2j =  3330
+max_N_2j =   400 # works up to 3300 but takes too long
 
 if os.path.isfile('Cube_results.txt') == True:
     os.remove('Cube_results.txt')
