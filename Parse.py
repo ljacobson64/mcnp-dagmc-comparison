@@ -1,7 +1,12 @@
+import os
+
 # Parse output files for CTM and NPS
 def parse_output_file(filename,N,F,geom_type,filename_res):
     
     filename_o = '%s.io' % (filename)
+    if os.path.isfile(filename_o) == False:
+        return
+    
     reader = open(filename_o,'r')
     
     # Grab last 512 bytes
@@ -30,10 +35,10 @@ def parse_output_file(filename,N,F,geom_type,filename_res):
     
     # Write NPS to text file
     if writer.tell() == 0:
-        print >> writer, '|------|-------|-----|-------|-------|----------|'
-        print >> writer, '| type |   N   |  F  | ctm1  | ctm2  |   nps    |'
-        print >> writer, '|------|-------|-----|-------|-------|----------|'
-    print >> writer, '|  %s  | %5u | %3.0f | %5.2f | %5.2f | %8u |' % (geom_type,N,F,ctm1,ctm2,nps)
+        print >> writer, '|------|-------|-----|--------|--------|-----------|'
+        print >> writer, '| type |   N   |  F  |  ctm1  |  ctm2  |    nps    |'
+        print >> writer, '|------|-------|-----|--------|--------|-----------|'
+    print >> writer, '|  %s  | %5u | %3.0f | %6.2f | %6.2f | %9u |' % (geom_type,N,F,ctm1,ctm2,nps)
     
     writer.close()
 
@@ -50,22 +55,21 @@ ctme       =  float(            params[3].split()[1 ])                         #
 
 reader.close()
 
+max_N_2s = 40000
+max_N_2j =  3330
+
+if os.path.isfile('Cube_results.txt') == True:
+    os.remove('Cube_results.txt')
+
 # Parse output
 for geom_type in geom_types:                                                   # loop for all geometry configurations
     for N in N_vals:                                                           # loop for all values of N
         for F in F_vals:                                                       # loop for all values of F
             
-            if geom_type == '2s':
-                valid_N = N <= max_N_2s
-            if geom_type == '2j':
-                valid_N = N <= max_N_2j
+            filename = 'zCube_%s_%u_%.0f' % (geom_type,N,F)                    # Base filename (no extension)
             
-            if valid_N:
-                
-                filename = 'Cube_%s_%u_%.0f' % (geom_type,N,F)                     # Base filename (no extension)
-                
-                # Parse MCNP output file
-                parse_output_file(filename,N,F,geom_type,'Cube_results.txt')       # parse output file for CTM and NPS
+            # Parse MCNP output file
+            parse_output_file(filename,N,F,geom_type,'Cube_results.txt')       # parse output file for CTM and NPS
 
 # Display output in command window
 f = open('Cube_results.txt','r')
