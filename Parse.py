@@ -33,11 +33,12 @@ def parse_output_file(filename,N,F,geom_type,filename_res):
 
     writer = open(filename_res,'a')
     
-    # Write NPS to text file
     if writer.tell() == 0:
         print >> writer, '|------|-------|-----|--------|--------|-----------|'
         print >> writer, '| type |   N   |  F  |  ctm1  |  ctm2  |    nps    |'
         print >> writer, '|------|-------|-----|--------|--------|-----------|'
+        
+    # Write NPS to text file
     print >> writer, '|  %s  | %5u | %3.0f | %6.2f | %6.2f | %9u |' % (geom_type,N,F,ctm1,ctm2,nps)
     
     writer.close()
@@ -55,8 +56,8 @@ ctme       =  float(            params[3].split()[1 ])                         #
 
 reader.close()
 
-max_N_2s = 40000
-max_N_2j =   400 # works up to 3300 but takes too long
+max_N_2s = 40000 # technically works up to 40000
+max_N_2j =  1000 # technically works up to  3300
 
 if os.path.isfile('Cube_results.txt') == True:
     os.remove('Cube_results.txt')

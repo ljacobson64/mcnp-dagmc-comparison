@@ -1,3 +1,5 @@
+from subprocess import call
+
 # Write input file; 2 dimensions with separate cells
 def write_mcnp_input_2s(filename,N,F,ctme):
     
@@ -161,11 +163,28 @@ def write_command_file(filename):
     print >> writer, 'log = %s.log' % (filename)
     print >> writer, 'error = %s.err' % (filename)
     print >> writer, 'transfer_input_files = %s.sh' % (filename)
-    print >> writer, 'request_cpus = 16'
+    print >> writer, 'requirements = Target.DetectedMemory >= 100000'
+    print >> writer, 'request_memory = 4000'
     print >> writer, '+AccountingGroup = EngrPhysics_Wilson' 
     print >> writer, 'Queue'
     
     writer. close()
+
+# Write master job script
+def write_master_job_script(geom_type,N,F):
+    
+    filename = 'zCube_%s_%u_%.0f.cmd' % (geom_type,N,F)
+    
+    writer = open('submit_jobs.sh','a')
+    
+    if writer.tell() == 0:
+        print >> writer, '#!/bin/bash'
+        print >> writer, ''
+    
+    print >> writer, 'echo %s' % (filename)
+    print >> writer, 'condor_submit %s' % (filename)
+    
+    writer.close() 
 
 # MAIN SCRIPT
 
@@ -180,8 +199,8 @@ ctme       =  float(            params[3].split()[1 ])                         #
 
 reader.close()
 
-max_N_2s = 40000
-max_N_2j =   400  # works up to 3300 but takes too long
+max_N_2s = 40000  # technically works up to 40000
+max_N_2j =  1000  # technically works up to  3300
 
 # Write input files and job scripts
 for geom_type in geom_types:                                                   # loop for all geometry configurations
@@ -195,19 +214,23 @@ for geom_type in geom_types:                                                   #
             
             if valid_N:
                 
-                filename = 'zCube_%s_%u_%.0f' % (geom_type,N,F)                     # base filename (no extension) 
+                filename = 'zCube_%s_%u_%.0f' % (geom_type,N,F)                # base filename (no extension) 
                 
                 # Write MCNP input file
-                if geom_type == '2s':                                              # 2 dimensions with separate cells
-                    write_mcnp_input_2s(filename,N,F,ctme)                         # write input file
-                if geom_type == '2j':                                              # 2 dimensions with joined cells
-                    write_mcnp_input_2j(filename,N,F,ctme)                         # write input file
+                if geom_type == '2s':                                          # 2 dimensions with separate cells
+                    write_mcnp_input_2s(filename,N,F,ctme)                     # write input file
+                if geom_type == '2j':                                          # 2 dimensions with joined cells
+                    write_mcnp_input_2j(filename,N,F,ctme)                     # write input file
                 
                 # Write job script
-                write_job_script(filename)                                         # write job script
+                write_job_script(filename)
                 
                 # Write command file
-                write_command_file(filename)                                       # write command file
+                write_command_file(filename)
+                
+                # Append instructions to master job script
+                write_master_job_script(geom_type,N,F)
                 
                 print filename
 
+call('chmod 760 submit_jobs.sh',shell=True)
