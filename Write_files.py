@@ -98,8 +98,8 @@ def write_mcnp_input_2j(filename,N,F,ctme):
     
     writer.close()
 
-# Write job script
-def write_job_script(filename):
+# Write job script for use on the HTC
+def write_job_script_HTC(filename):
     
     filename_j = '%s.sh' % (filename)
     writer = open(filename_j,'w')
@@ -148,8 +148,8 @@ def write_job_script(filename):
     
     writer.close()
     
-# Write command file
-def write_command_file(filename):
+# Write command file for use on the HTC
+def write_command_file_HTC(filename):
     
     filename_c = '%s.cmd' % (filename)
     writer = open(filename_c,'w')
@@ -163,15 +163,14 @@ def write_command_file(filename):
     print >> writer, 'log = %s.log' % (filename)
     print >> writer, 'error = %s.err' % (filename)
     print >> writer, 'transfer_input_files = %s.sh' % (filename)
-    print >> writer, 'requirements = Target.DetectedMemory >= 100000'
-    print >> writer, 'request_memory = 4000'
+    print >> writer, 'requirements = regexp("e(12[0-9]|13[0-9]|14[0-9]|150).chtc.wisc.edu",machine) == True'
     print >> writer, '+AccountingGroup = EngrPhysics_Wilson' 
     print >> writer, 'Queue'
     
     writer. close()
 
-# Write master job script
-def write_master_job_script(geom_type,N,F):
+# Write master job script for use on the HTC
+def write_master_job_script_HTC(geom_type,N,F):
     
     filename = 'zCube_%s_%u_%.0f.cmd' % (geom_type,N,F)
     
@@ -186,6 +185,51 @@ def write_master_job_script(geom_type,N,F):
     
     writer.close() 
 
+# Write job script for use on the HPC
+def write_job_script_HPC(geom_type,N,F):
+    
+    filename = 'zCube_%s_%u_%.0f' % (geom_type,N,F)
+    filename_sh = '%s.sh' % (filename)
+    writer = open(filename_sh,'w')
+    
+    print >> writer, '#!/bin/bash'
+    print >> writer, '#SBATCH --partition=univ'                                 # default "univ" if not specified
+    
+    if geom_type == '2s' and N > 4000:
+        print >> writer, '#SBATCH --time=0-00:60:00'                            # run time in days-hh:mm:ss
+    elif geom_type == '2j' and N > 200:
+        print >> writer, '#SBATCH --time=0-00:60:00'                            # run time in days-hh:mm:ss
+    else:
+        print >> writer, '#SBATCH --time=0-00:06:00'                           # run time in days-hh:mm:ss
+    
+    print >> writer, '#SBATCH --ntasks=1'                                       # require 32 CPUs (CPUs)
+    print >> writer, '#SBATCH --mem-per-cpu=2000'                               # RAM in MB (default 4GB, max 8GB)
+    print >> writer, '#SBATCH --error=/home/ljjacobson/%s.err' % (filename)
+    print >> writer, '#SBATCH --output=/home/ljjacobson/%s.out' % (filename)
+    print >> writer, ''
+    # for MCNP5
+    print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi n=%s.i' % (filename)
+    # for DAG-MCNP5
+    # print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi n=%s.i g=something' % (filename)
+    
+    writer.close()
+    
+# Write master job script for use on the HPC
+def write_master_job_script_HPC(geom_type,N,F):
+    
+    filename = 'zCube_%s_%u_%.0f.sh' % (geom_type,N,F)
+    
+    writer = open('submit_jobs.sh','a')
+    
+    if writer.tell() == 0:
+        print >> writer, '#!/bin/bash'
+        print >> writer, ''
+    
+    print >> writer, 'echo %s' % (filename)
+    print >> writer, 'sbatch %s' % (filename)
+    
+    writer.close() 
+
 # MAIN SCRIPT
 
 # Open file containing parameters to vary
@@ -196,11 +240,14 @@ N_vals     = [  int(i) for i in params[0].split()[1:]]                         #
 F_vals     = [float(i) for i in params[1].split()[1:]]                         # list of values of F
 geom_types =                    params[2].split()[1:]                          # list of geometry configurations
 ctme       =  float(            params[3].split()[1 ])                         # computer time
+machines   =                    params[4].split()[1:][0]                       # HTC or HPC
+
+print machines
 
 reader.close()
 
-max_N_2s = 40000  # technically works up to 40000
-max_N_2j =  1000  # technically works up to  3300
+max_N_2s = 40000
+max_N_2j =  2000
 
 # Write input files and job scripts
 for geom_type in geom_types:                                                   # loop for all geometry configurations
@@ -212,7 +259,9 @@ for geom_type in geom_types:                                                   #
             if geom_type == '2j':
                 valid_N = N <= max_N_2j
             
-            if valid_N:
+            valid_F = F > 0 and F < 100
+            
+            if valid_N and valid_F:
                 
                 filename = 'zCube_%s_%u_%.0f' % (geom_type,N,F)                # base filename (no extension) 
                 
@@ -222,14 +271,16 @@ for geom_type in geom_types:                                                   #
                 if geom_type == '2j':                                          # 2 dimensions with joined cells
                     write_mcnp_input_2j(filename,N,F,ctme)                     # write input file
                 
-                # Write job script
-                write_job_script(filename)
-                
-                # Write command file
-                write_command_file(filename)
-                
-                # Append instructions to master job script
-                write_master_job_script(geom_type,N,F)
+                # For use on the HPC
+                if machines == 'HPC':
+                    write_job_script_HPC(geom_type,N,F)                        # Write job script
+                    write_master_job_script_HPC(geom_type,N,F)                 # Append instructions to master job script
+
+                # For use on the HTC
+                if machines == 'HTC':
+                    write_job_script_HTC(filename)                             # Write job script
+                    write_command_file_HTC(filename)                           # Write command file
+                    write_master_job_script_HTC(geom_type,N,F)                 # Append instructions to master job script
                 
                 print filename
 

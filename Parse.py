@@ -3,11 +3,14 @@ import os
 # Parse output files for CTM and NPS
 def parse_output_file(filename,N,F,geom_type,filename_res):
     
-    filename_o = '%s.io' % (filename)
-    if os.path.isfile(filename_o) == False:
+    filename_io = '%s.io' % (filename)
+    filename_out = '%s.out' % (filename)
+    if os.path.isfile(filename_io) == False:
         return
-    
-    reader = open(filename_o,'r')
+    if os.path.getsize(filename_out) == 0:
+    	return
+        
+    reader = open(filename_io,'r')
     
     # Grab last 512 bytes
     reader.seek(0,2)
@@ -56,8 +59,8 @@ ctme       =  float(            params[3].split()[1 ])                         #
 
 reader.close()
 
-max_N_2s = 40000 # technically works up to 40000
-max_N_2j =  1000 # technically works up to  3300
+max_N_2s = 40000
+max_N_2j =  2000
 
 if os.path.isfile('Cube_results.txt') == True:
     os.remove('Cube_results.txt')
@@ -71,6 +74,8 @@ for geom_type in geom_types:                                                   #
             
             # Parse MCNP output file
             parse_output_file(filename,N,F,geom_type,'Cube_results.txt')       # parse output file for CTM and NPS
+            
+            print filename
 
 # Display output in command window
 f = open('Cube_results.txt','r')
