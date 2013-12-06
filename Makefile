@@ -2,7 +2,7 @@ write:
 	python Write_files.py
 
 copy:
-	scp *.i *.sh ljjacobson@aci-service-1.chtc.wisc.edu:~/
+	scp *.i *.h5m *.sh ljjacobson@aci-service-1.chtc.wisc.edu:~/
 
 retrieve:
 	scp ljjacobson@aci-service-1.chtc.wisc.edu:"~/*.io ~/*.out ~/*.err" ./

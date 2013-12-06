@@ -211,7 +211,7 @@ for version in versions:                                                       #
                     valid_N = N <= max_N_2s
                 if version == 'nat' and geom == '2j':
                     valid_N = N <= max_N_2j
-                if version == 'dag' and (geom == 'd2s' or geom == 'd2j'):
+                if version == 'dag' and (geom == '2s' or geom == '2j'):
                     valid_N = True
                 
                 valid_F = F >= 0 and F <= 100
@@ -221,46 +221,41 @@ for version in versions:                                                       #
                 # Write input files
                 if valid_N and valid_F:
                     
-                    if version == 'nat' and geom == '2s':                      # Native MCNP, 2 dimensions, separate cells
-                        write_title(filename,N,F,ctme)
-                        write_cells_2s(filename,N,F,ctme)
-                        write_surfaces_2(filename,N,F,ctme)
-                        write_data_2s(filename,N,F,ctme)
-                        write_jobs_n(filename,N,F,ctme,geom)
-                        write_master_jobs(filename)
+                    if version == 'nat' and (geom == '2s' or geom == '2j'):    # Native MCNP, 2 dimensions
                         
-                    if version == 'nat' and geom == '2j':                      # Native MCNP, 2 dimensions, joined cells
-                        write_title(filename,N,F,ctme)
-                        write_cells_2j(filename,N,F,ctme)
-                        write_surfaces_2(filename,N,F,ctme)
-                        write_data_2j(filename,N,F,ctme)
-                        write_jobs_n(filename,N,F,ctme,geom)
-                        write_master_jobs(filename)
-                    
-                    if version == 'dag'    and geom == '2s':                   # DAG-MCNP,    2 dimensions, separate cells
-                        write_title(filename,N,F,ctme)
-                        write_cells_2s(filename,N,F,ctme)
-                        write_surfaces_2(filename,N,F,ctme)
-                        write_data_2s(filename,N,F,ctme)
-                        # mcnp2cad
-                        # delete original input file
-                        # write_data_2d(filename,N,F,ctme)
-                        # dagmc_preproc
-                        write_jobs_d(filename,N,F,ctme,geom)
-                        write_master_jobs(filename)
-                    
-                    if version == 'dag'    and geom == '2j':                   # DAG-MCNP,    2 dimensions, joined cells
-                        write_title(filename,N,F,ctme)
-                        write_cells_2s(filename,N,F,ctme)
-                        write_surfaces_2(filename,N,F,ctme)
-                        write_data_2s(filename,N,F,ctme)
-                        # mcnp2cad
-                        # delete original input file
-                        # CUBIT tinkering
-                        # write_data_2d(filename,N,F,ctme)
-                        # dagmc_preproc
-                        write_jobs_d(filename,N,F,ctme,geom)
-                        write_master_jobs(filename)
+                        write_title(filename,N,F,ctme)                         # Write title cards
+                        
+                        if   geom == '2s':
+                            write_cells_2s(filename,N,F,ctme)                  # Append cell cards; separate cells
+                        elif geom == '2j':
+                            write_cells_2j(filename,N,F,ctme)                  # Append cell cards; joined cells
+                        
+                        write_surfaces_2(filename,N,F,ctme)                    # Append surface cards
+                        
+                        if   geom == '2s':
+                            write_data_2s(filename,N,F,ctme)                   # Append data cards; separate cells
+                        elif geom == '2j':
+                            write_data_2j(filename,N,F,ctme)                   # Append data cards; joined cells
+                        
+                        write_jobs_n(filename,N,F,ctme,geom)                   # Write job file
+                        write_master_jobs(filename)                            # Append instructions to master job file
+                        
+                    if version == 'dag' and (geom == '2s' or geom == '2j'):    # DAG-MCNP, 2 dimensions
+                        
+                        write_title(filename,N,F,ctme)                         # Write title cards
+                        write_cells_2s(filename,N,F,ctme)                      # Append cell cards; separate cells
+                        write_surfaces_2(filename,N,F,ctme)                    # Append surface cards; separate cells
+                        write_data_2s(filename,N,F,ctme)                       # Append data cards; separate cells
+                        call('mcnp2cad '+filename+'.i',shell=True)             # Convert MCNP to CAD
+                        call('mv out.sat '+filename+'.sat',shell=True)         # Rename CAD file
+                        call('rm -f '+filename+'.i',shell=True)                # Delete original MCNP input file
+                        write_data_2d(filename,N,F,ctme)                       # Write MCNP data cards for DAG
+                      # if geom == '2j':
+                            # CUBIT tinkering                                  # Join cells in CUBIT
+                        call('dagmc_preproc -f 1.0e-4'+filename+'.sat -o '+filename+'.h5m',shell=True)
+                                                                               # DAGMC pre-processing
+                        write_jobs_d(filename,N,F,ctme,geom)                   # Write job file
+                        write_master_jobs(filename)                            # Append instructions to master job file
                     
                     print filename
 
