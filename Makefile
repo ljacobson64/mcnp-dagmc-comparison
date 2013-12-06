@@ -1,19 +1,11 @@
 write:
 	python Write_files.py
 
-copyHPC:
+copy:
 	scp *.i *.sh ljjacobson@aci-service-1.chtc.wisc.edu:~/
 
-retrieveHPC:
+retrieve:
 	scp ljjacobson@aci-service-1.chtc.wisc.edu:"~/*.io ~/*.out ~/*.err" ./
-	find . -maxdepth 1 -name \*.io -print | wc -l
-
-copyHTC:
-	scp *.i        ljjacobson@submit.chtc.wisc.edu:/squid/ljjacobson/
-	scp *.sh *.cmd ljjacobson@submit.chtc.wisc.edu:~/surface_study/
-
-retrieveHTC:
-	scp ljjacobson@submit.chtc.wisc.edu:"~/surface_study/*.io ~/surface_study/*.log" ./
 	find . -maxdepth 1 -name \*.io -print | wc -l
 
 parse:

@@ -60,7 +60,7 @@ ctme       =  float(            params[3].split()[1 ])                         #
 reader.close()
 
 max_N_2s = 40000
-max_N_2j =  2000
+max_N_2j =  1000
 
 if os.path.isfile('Cube_results.txt') == True:
     os.remove('Cube_results.txt')

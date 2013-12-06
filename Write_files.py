@@ -98,93 +98,6 @@ def write_mcnp_input_2j(filename,N,F,ctme):
     
     writer.close()
 
-# Write job script for use on the HTC
-def write_job_script_HTC(filename):
-    
-    filename_j = '%s.sh' % (filename)
-    writer = open(filename_j,'w')
-    
-    print >> writer, '#!/bin/bash'
-    print >> writer, 'get_until_got(){' 
-    print >> writer, 'wget  -c -t 5 --waitretry=20 --read-timeout=10 $1 '
-    print >> writer, 'while [[ $? != 0 ]]'
-    print >> writer, 'do'
-    print >> writer, 'wget $1'
-    print >> writer, 'done'
-    print >> writer, '}'
-    print >> writer, ''
-    print >> writer, '# Determine absolute path'
-    print >> writer, 'cwd=$PWD'
-    print >> writer, ''
-    print >> writer, '# Get and set the gcc compiler suite and set ld and paths'
-    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/compiler_tools.tar.gz' 
-    print >> writer, ''
-    print >> writer, '# Unpack compiler tools'
-    print >> writer, 'tar -zxf compiler_tools.tar.gz '
-    print >> writer, ''
-    print >> writer, '# Set library paths'
-    print >> writer, 'export LD_LIBRARY_PATH=$cwd/compiler/gcc-4.8.1/lib:$cwd/compiler/gcc-4.8.1/lib64:$cwd/compiler/gmp-5.1.2/lib:$cwd/compiler/mpc-1.0.1/lib:$cwd/compiler/mpfr-3.1.2/lib'
-    print >> writer, ''
-    print >> writer, '# Get and set the MOAB and HDF5 libs' 
-    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/moab_tools.tar.gz'
-    print >> writer, ''
-    print >> writer, '# set the MOAB path'
-    print >> writer, 'tar -zxf moab_tools.tar.gz'
-    print >> writer, 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$cwd/moab_tools/hdf5-1.8.4/lib'
-    print >> writer, 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$cwd/moab_tools/moab-4.6.0/lib' 
-    print >> writer, ''
-    print >> writer, '# Get and set the required MCNP5 paths'
-    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/mcnp5.tar.gz'
-    print >> writer, 'mkdir mcnp5'
-    print >> writer, 'cp mcnp5.tar.gz mcnp5/.' 
-    print >> writer, 'cd mcnp5 '
-    print >> writer, 'tar -zxf mcnp5.tar.gz' 
-    print >> writer, 'cd .. '
-    print >> writer, 'export PATH=$cwd/mcnp5:$PATH'
-    print >> writer, ''
-    print >> writer, 'get_until_got http://proxy.chtc.wisc.edu/SQUID/ljjacobson/%s.i' % (filename)
-    print >> writer, 'mcnp5 i=%s.i o=%s.io' % (filename,filename)
-    print >> writer, 'ls | grep -v %s.io | xargs rm -rf' % (filename)
-    
-    writer.close()
-    
-# Write command file for use on the HTC
-def write_command_file_HTC(filename):
-    
-    filename_c = '%s.cmd' % (filename)
-    writer = open(filename_c,'w')
-    
-    print >> writer, 'executable = %s.sh' % (filename)
-    print >> writer, ''
-    print >> writer, 'copy_to_spool = false' 
-    print >> writer, 'should_transfer_files = yes' 
-    print >> writer, 'when_to_transfer_output = on_exit' 
-    print >> writer, 'output = %s.out' % (filename)
-    print >> writer, 'log = %s.log' % (filename)
-    print >> writer, 'error = %s.err' % (filename)
-    print >> writer, 'transfer_input_files = %s.sh' % (filename)
-    print >> writer, 'requirements = regexp("e(12[0-9]|13[0-9]|14[0-9]|150).chtc.wisc.edu",machine) == True'
-    print >> writer, '+AccountingGroup = EngrPhysics_Wilson' 
-    print >> writer, 'Queue'
-    
-    writer. close()
-
-# Write master job script for use on the HTC
-def write_master_job_script_HTC(geom_type,N,F):
-    
-    filename = 'zCube_%s_%u_%.0f.cmd' % (geom_type,N,F)
-    
-    writer = open('submit_jobs.sh','a')
-    
-    if writer.tell() == 0:
-        print >> writer, '#!/bin/bash'
-        print >> writer, ''
-    
-    print >> writer, 'echo %s' % (filename)
-    print >> writer, 'condor_submit %s' % (filename)
-    
-    writer.close() 
-
 # Write job script for use on the HPC
 def write_job_script_HPC(geom_type,N,F):
     
@@ -240,14 +153,11 @@ N_vals     = [  int(i) for i in params[0].split()[1:]]                         #
 F_vals     = [float(i) for i in params[1].split()[1:]]                         # list of values of F
 geom_types =                    params[2].split()[1:]                          # list of geometry configurations
 ctme       =  float(            params[3].split()[1 ])                         # computer time
-machines   =                    params[4].split()[1:][0]                       # HTC or HPC
-
-print machines
 
 reader.close()
 
 max_N_2s = 40000
-max_N_2j =  2000
+max_N_2j =  1000
 
 # Write input files and job scripts
 for geom_type in geom_types:                                                   # loop for all geometry configurations
@@ -259,7 +169,7 @@ for geom_type in geom_types:                                                   #
             if geom_type == '2j':
                 valid_N = N <= max_N_2j
             
-            valid_F = F > 0 and F < 100
+            valid_F = F >= 0 and F <= 100
             
             if valid_N and valid_F:
                 
@@ -271,16 +181,8 @@ for geom_type in geom_types:                                                   #
                 if geom_type == '2j':                                          # 2 dimensions with joined cells
                     write_mcnp_input_2j(filename,N,F,ctme)                     # write input file
                 
-                # For use on the HPC
-                if machines == 'HPC':
-                    write_job_script_HPC(geom_type,N,F)                        # Write job script
-                    write_master_job_script_HPC(geom_type,N,F)                 # Append instructions to master job script
-
-                # For use on the HTC
-                if machines == 'HTC':
-                    write_job_script_HTC(filename)                             # Write job script
-                    write_command_file_HTC(filename)                           # Write command file
-                    write_master_job_script_HTC(geom_type,N,F)                 # Append instructions to master job script
+                write_job_script_HPC(geom_type,N,F)                            # Write job script
+                write_master_job_script_HPC(geom_type,N,F)                     # Append instructions to master job script
                 
                 print filename
 
