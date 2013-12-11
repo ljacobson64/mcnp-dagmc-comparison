@@ -1,16 +1,19 @@
+DIR=$(shell head -n 1 params.txt)
+
+test:
+	echo $(DIR)
+
 write:
 	python Write_files.py
 
 copy:
-	scp *.i *.h5m *.sh ljjacobson@aci-service-1.chtc.wisc.edu:~/
+	scp $(DIR)*.i $(DIR)*.h5m $(DIR)*.sh ljjacobson@aci-service-1.chtc.wisc.edu:~/
 
 retrieve:
-	scp ljjacobson@aci-service-1.chtc.wisc.edu:"~/*.io ~/*.out ~/*.err" ./
-	find . -maxdepth 1 -name \*.io -print | wc -l
+	scp ljjacobson@aci-service-1.chtc.wisc.edu:"~/*.io ~/*.out ~/*.err" $(DIR)
 
 parse:
 	python Parse.py
-	find . -maxdepth 1 -name \*.io -print | wc -l
 
 clean:
-	rm -f zCube_* comou* out* fort* submit_jobs.sh
+	rm -f $(DIR)zCube_* $(DIR)submit_jobs.sh $(DIR)out.sat comou* out* runtp* fort* 
