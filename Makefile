@@ -1,8 +1,5 @@
 DIR=$(shell head -n 1 params.txt)
 
-test:
-	echo $(DIR)
-
 write:
 	python Write_files.py
 
