@@ -187,6 +187,10 @@ def write_cubit_2j(fname,N,F,ctme):
     if N == 1:
         if F != 100:
             print >> writer, 'unite body %s' % (' '.join(map(str,range(N+1,2*N+3))))
+    elif N == 2:
+        print >> writer, 'unite body %s' % (' '.join(map(str,range(1,N+1))))
+        if F != 100:
+            print >> writer, 'unite body %s' % (' '.join(map(str,range(N+1,2*N+3))))
     else:
         print >> writer, 'unite body %s' % (' '.join(map(str,range(1,N+1))))
         if F == 100:
