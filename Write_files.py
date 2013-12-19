@@ -1,5 +1,6 @@
 from subprocess import call
 import math
+import time
 
 # Write title cards
 def write_title(fname,N,F,ctme):
@@ -125,23 +126,22 @@ def write_cubit_2s(fname,N,F,ctme):
     fname_jou = '%s.jou' % (fname)
     writer = open(direc+fname_jou,'w')
     
-    print >> writer, '#!python'
     for j in range(1,N+1):
-        print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % (j*F/N,F/N)
-        print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (j,F*j/(2*N),(N-j+0.5)*F/N)   
+        print >> writer, 'brick x %11.8f y %11.8f z 100' % (j*F/N,F/N)
+        print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (j,F*j/(2*N),(N-j+0.5)*F/N)   
     for j in range(1,N):
-        print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % ((N-j)*F/N,F/N)
-        print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (N+j,(N+j)*F/(2*N),(N-j+0.5)*F/N)   
+        print >> writer, 'brick x %11.8f y %11.8f z 100' % ((N-j)*F/N,F/N)
+        print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (N+j,(N+j)*F/(2*N),(N-j+0.5)*F/N)   
     
-    print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % (100-F,100-F)
-    print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (2*N,(100+F)/2,(100+F)/2)  
-    print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % (F,100-F)
-    print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (2*N+1,F/2,(100+F)/2)
-    print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % (100-F,F)
-    print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (2*N+2,(100+F)/2,F/2)
+    print >> writer, 'brick x %11.8f y %11.8f z 100' % (100-F,100-F)
+    print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (2*N,(100+F)/2,(100+F)/2)  
+    print >> writer, 'brick x %11.8f y %11.8f z 100' % (F,100-F)
+    print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (2*N+1,F/2,(100+F)/2)
+    print >> writer, 'brick x %11.8f y %11.8f z 100' % (100-F,F)
+    print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (2*N+2,(100+F)/2,F/2)
     
-    #print >> writer, 'cubit.cmd(\'save as "%s.cub"\')' % (fname)
-    print >> writer, 'cubit.cmd(\'export acis "%s%s.sat"\')' % (direc,fname)
+    #print >> writer, 'save as "%s.cub"' % (fname)
+    print >> writer, 'export acis "%s%s.sat"' % (direc,fname)
     
     writer.close()
 
@@ -151,27 +151,27 @@ def write_cubit_2j(fname,N,F,ctme):
     fname_jou = '%s.jou' % (fname)
     writer = open(direc+fname_jou,'w')
     
-    print >> writer, '#!python'
     for j in range(1,N+1):
-        print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % (j*F/N,F/N)
-        print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (j,F*j/(2*N),(N-j+0.5)*F/N)   
+        print >> writer, 'brick x %11.8f y %11.8f z 100' % (j*F/N,F/N)
+        print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (j,F*j/(2*N),(N-j+0.5)*F/N)   
     for j in range(1,N):
-        print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % ((N-j)*F/N,F/N)
-        print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (N+j,(N+j)*F/(2*N),(N-j+0.5)*F/N)   
+        print >> writer, 'brick x %11.8f y %11.8f z 100' % ((N-j)*F/N,F/N)
+        print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (N+j,(N+j)*F/(2*N),(N-j+0.5)*F/N)   
     
-    print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % (100-F,100-F)
-    print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (2*N,(100+F)/2,(100+F)/2)  
-    print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % (F,100-F)
-    print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (2*N+1,F/2,(100+F)/2)
-    print >> writer, 'cubit.cmd(\'brick x %11.8f y %11.8f z 100\')' % (100-F,F)
-    print >> writer, 'cubit.cmd(\'move volume %u location x %11.8f y %11.8f z 50\')' % (2*N+2,(100+F)/2,F/2)
+    if F != 100:
+        print >> writer, 'brick x %11.8f y %11.8f z 100' % (100-F,100-F)
+        print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (2*N,(100+F)/2,(100+F)/2)  
+        print >> writer, 'brick x %11.8f y %11.8f z 100' % (F,100-F)
+        print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (2*N+1,F/2,(100+F)/2)
+        print >> writer, 'brick x %11.8f y %11.8f z 100' % (100-F,F)
+        print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (2*N+2,(100+F)/2,F/2)
     
-    #print >> writer, 'cubit.cmd(\'unite body %u %u %u\')' % (2*N,2*N+1,2*N+2)
+    #print >> writer, 'unite body %u %u %u' % (2*N,2*N+1,2*N+2)
     #tree_size = int(math.log(N,2))
     #for tree_level in range(1,tree_size+1):
     #    for j in range(1,N/(2**tree_level)+1):
-    #        print >> writer, 'cubit.cmd(\'unite body %u %u\')' % (2**tree_level*j-(2**tree_level-1),2**tree_level*j-(2**(tree_level-1)-1))
-    #        print >> writer, 'cubit.cmd(\'unite body %u %u\')' % (2**tree_level*j-(2**tree_level-1)+N,2**tree_level*j-(2**(tree_level-1)-1)+N)
+    #        print >> writer, 'unite body %u %u' % (2**tree_level*j-(2**tree_level-1),2**tree_level*j-(2**(tree_level-1)-1))
+    #        print >> writer, 'unite body %u %u' % (2**tree_level*j-(2**tree_level-1)+N,2**tree_level*j-(2**(tree_level-1)-1)+N)
     #tree_temp = N
     #end_tree = [1]
     #for tree_level in reversed(range(1,tree_size+1)):
@@ -181,14 +181,21 @@ def write_cubit_2j(fname,N,F,ctme):
     #    if tree_temp-2**tree_level == 0:
     #        break
     #for j in reversed(range(1,len(end_tree))):
-    #    print >> writer, 'cubit.cmd(\'unite body %u %u\')' % (end_tree[j-1],end_tree[j])
-    #    print >> writer, 'cubit.cmd(\'unite body %u %u\')' % (end_tree[j-1]+N,end_tree[j]+N)
+    #    print >> writer, 'unite body %u %u' % (end_tree[j-1],end_tree[j])
+    #    print >> writer, 'unite body %u %u' % (end_tree[j-1]+N,end_tree[j]+N)
     
-    print >> writer, 'cubit.cmd(\'unite body %s\')' % (' '.join(map(str,range(1,N+1))))
-    print >> writer, 'cubit.cmd(\'unite body %s\')' % (' '.join(map(str,range(N+1,2*N+3))))
+    if N == 1:
+        if F != 100:
+            print >> writer, 'unite body %s' % (' '.join(map(str,range(N+1,2*N+3))))
+    else:
+        print >> writer, 'unite body %s' % (' '.join(map(str,range(1,N+1))))
+        if F == 100:
+            print >> writer, 'unite body %s' % (' '.join(map(str,range(N+1,2*N)))) 
+        else:
+            print >> writer, 'unite body %s' % (' '.join(map(str,range(N+1,2*N+3))))
     
-    #print >> writer, 'cubit.cmd(\'save as "%s%s.cub"\')' % (direc,fname)
-    print >> writer, 'cubit.cmd(\'export acis "%s%s.sat"\')' % (direc,fname)
+    #print >> writer, 'save as "%s%s.cub"' % (direc,fname)
+    print >> writer, 'export acis "%s%s.sat"' % (direc,fname)
     
     writer.close()
 
@@ -259,6 +266,8 @@ def write_master_jobs(fname):
 
 # MAIN SCRIPT
 
+start_time = time.time()
+
 # Open file containing parameters to vary
 reader = open('params.txt','r')
 params = reader.readlines()
@@ -273,8 +282,13 @@ versions   =                    params[5].split()[1:]                           
 
 reader.close()
 
-max_N_2s = 40000
-max_N_2j =  1000
+min_N        =      1
+max_N_nat_2s =  40000
+max_N_nat_2j =   1000
+max_N_dag    = 100000
+min_F_nat    =      0
+min_F_dag    =      0.001
+max_F        =    100
 
 use_local_hd = True
 
@@ -284,16 +298,28 @@ for version in versions:                                                        
         for N in N_vals:                                                        # loop for all values of N
             for F in F_vals:                                                    # loop for all values of F
                 
+                print '|============================================================|'
+                print '|   N = %5u    F = %7.3f    geom = %s    version = %s   |' % (N,F,geom,version)
+                print '|============================================================|'
+                
                 # Determine whether parameters are valid
                 if   version == 'nat' and geom == '2s':
-                    valid_N = N <= max_N_2s
+                    valid_N = N >= min_N and N <= max_N_nat_2s
                 elif version == 'nat' and geom == '2j':
-                    valid_N = N <= max_N_2j
+                    valid_N = N >= min_N and N <= max_N_nat_2j
                 elif version == 'dag' and (geom == '2s' or geom == '2j'):
-                    valid_N = True
+                    valid_N = N >= min_N and N <= max_N_dag
                 else:
                     valid_N = False
-                valid_F = F >= 0 and F <= 100
+                if   version == 'nat' and (geom == '2s' or geom == '2j'):
+                    valid_F = F >= min_F_nat and F <= max_F
+                elif version == 'dag' and (geom == '2s' or geom == '2j'):
+                    valid_F = F >= min_F_dag and F <= max_F
+                else:
+                    valid_F = False
+                
+                if not valid_N or not valid_F:
+                    print 'Invalid parameters'
                 
                 fname = 'zCube_%s_%s_%u_%.0f' % (version,geom,N,F)              # base filename (no extension)
                 
@@ -328,7 +354,7 @@ for version in versions:                                                        
                         elif geom == '2j':
                             write_cubit_2j(fname,N,F,ctme)                      # Write CUBIT instructions; joined cells
                         
-                        call('/filespace/groups/cnerg/opt/cubit13.2/cubit -batch -nographics -nojournal -information=off '+direc+fname+'.jou',shell=True)
+                        call('cubit -batch -nographics -nojournal -information=off '+direc+fname+'.jou',shell=True)
                                                                                 # Run CUBIT from command line
                         
                         call('dagmc_preproc -f 1.0e-4 '+direc+fname+'.sat -o '+direc+fname+'.h5m',shell=True)
@@ -336,8 +362,8 @@ for version in versions:                                                        
                         
                         write_job_d(fname,N,F,ctme,geom)                        # Write HPC job file
                         write_master_jobs(fname)                                # Append instructions to master job file
-                    
-                    print direc+fname
 
 # Make master job script executable
 call('chmod 770 '+direc+'submit_jobs.sh',shell=True)
+
+print '%.3f seconds' % (time.time()-start_time)
