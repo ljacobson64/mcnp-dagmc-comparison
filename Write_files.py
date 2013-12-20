@@ -113,7 +113,7 @@ def write_data_2d(fname,N,F,ctme):
     fname_i = '%s.i' % (fname)
     writer = open(direc+fname_i,'a')
     
-    print >> writer, 'c DATA CARDS'
+    print >> writer, 'DATA CARDS'
     print >> writer, 'MODE N'
     print >> writer, 'SDEF X=99.9999 Y=99.9999 Z=99.9999'
     print >> writer, 'CTME %f' % ctme
@@ -165,6 +165,9 @@ def write_cubit_2j(fname,N,F,ctme):
         print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (2*N+1,F/2,(100+F)/2)
         print >> writer, 'brick x %11.8f y %11.8f z 100' % (100-F,F)
         print >> writer, 'move volume %u location x %11.8f y %11.8f z 50' % (2*N+2,(100+F)/2,F/2)
+        g_ind = 2*N+3
+    else:
+        g_ind = 2*N
     
     #print >> writer, 'unite body %u %u %u' % (2*N,2*N+1,2*N+2)
     #tree_size = int(math.log(N,2))
@@ -198,7 +201,18 @@ def write_cubit_2j(fname,N,F,ctme):
         else:
             print >> writer, 'unite body %s' % (' '.join(map(str,range(N+1,2*N+3))))
     
+    print >> writer, 'brick x 110 y 110 z 110'
+    print >> writer, 'move volume %u location 50 50 50' % (g_ind)
+    print >> writer, 'brick x 120 y 120 z 120'
+    print >> writer, 'move volume %u location 50 50 50' % (g_ind+1)
+    print >> writer, 'subtract %u from %u' % (g_ind,g_ind+1)
+    print >> writer, 'group "graveyard" add volume %u' % (g_ind+2)
+    print >> writer, 'merge all'
+    print >> writer, 'imprint body all'
+    
     #print >> writer, 'save as "%s%s.cub"' % (direc,fname)
+    print >> writer, 'set geometry version 1902'
+    print >> writer, 'set attribute on'
     print >> writer, 'export acis "%s%s.sat"' % (direc,fname)
     
     writer.close()
@@ -270,8 +284,6 @@ def write_master_jobs(fname):
 
 # MAIN SCRIPT
 
-start_time = time.time()
-
 # Open file containing parameters to vary
 reader = open('params.txt','r')
 params = reader.readlines()
@@ -301,6 +313,8 @@ for version in versions:                                                        
     for geom in geoms:                                                          # loop for all geometry configurations
         for N in N_vals:                                                        # loop for all values of N
             for F in F_vals:                                                    # loop for all values of F
+                
+                start_time = time.time()                
                 
                 print '|============================================================|'
                 print '|   N = %5u    F = %7.3f    geom = %s    version = %s   |' % (N,F,geom,version)
@@ -366,8 +380,13 @@ for version in versions:                                                        
                         
                         write_job_d(fname,N,F,ctme,geom)                        # Write HPC job file
                         write_master_jobs(fname)                                # Append instructions to master job file
+                
+                # Record time taken
+                write_time = time.time()-start_time
+                print '%.3f seconds' % (write_time)
+                writer = open('timing.txt','a')
+                print >> writer, '%.3f' % (write_time)
+                writer.close()
 
 # Make master job script executable
 call('chmod 770 '+direc+'submit_jobs.sh',shell=True)
-
-print '%.3f seconds' % (time.time()-start_time)
