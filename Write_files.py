@@ -1,4 +1,5 @@
 from subprocess import call
+import itertools
 import math
 import time
 
@@ -263,16 +264,16 @@ def write_master_job(fname):
 
 # Open file containing parameters to vary
 reader = open('params.txt','r')
-params = reader.readlines()
+params_str = reader.readlines()
 
 global direc
-direc      =                    params[0].split()[0 ]                           # directory to place files
-N_vals     = [  int(i) for i in params[1].split()[1:]]                          # list of values of N
-F_vals     = [float(i) for i in params[2].split()[1:]]                          # list of values of F
-mfps       = [float(i) for i in params[3].split()[1:]]                          # list of number of mean free paths in 1 m
-geoms      =                    params[4].split()[1:]                           # list of geometry configurations
-ctme       =  float(            params[5].split()[1 ])                          # computer time
-versions   =                    params[6].split()[1:]                           # list of MCNP versions
+direc      =                    params_str[0].split()[0 ]                       # directory to place files
+versions   =                    params_str[1].split()[1:]                       # list of MCNP versions
+geoms      =                    params_str[2].split()[1:]                       # list of geometry configurations
+N_vals     = [  int(i) for i in params_str[3].split()[1:]]                      # list of values of N
+F_vals     = [float(i) for i in params_str[4].split()[1:]]                      # list of values of F
+mfps       = [float(i) for i in params_str[5].split()[1:]]                      # list of number of mean free paths in 1 m
+ctme       =  float(            params_str[6].split()[1 ])                      # computer time
 
 reader.close()
 
@@ -284,80 +285,87 @@ min_F_nat    =      0
 min_F_dag    =      0.001
 max_F        =    100
 
-use_local_hd = True
-
 # Write input files and job scripts
-for version in versions:                                                        # loop for all MCNP versions
-    for geom in geoms:                                                          # loop for all geometry configurations
-        for N in N_vals:                                                        # loop for all values of N
-            for F in F_vals:                                                    # loop for all values of F
-                for mfp in mfps:                                                # loop for all values of mfp
-                    
-                    start_time = time.time()
-                    
-                    rho = mfp*0.0078958                                         # mass density of deuterium
+for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
+    version = params[0]                                                         # loop for all MCNP versions
+    geom    = params[1]                                                         # loop for all geometry configurations
+    N       = params[2]                                                         # loop for all values of N
+    F       = params[3]                                                         # loop for all values of F
+    mfp     = params[4]                                                         # loop for all values of mfp
+    
+    start_time = time.time()
+    
+    # Calculate mass density of deuterium from input number of mean free paths in 1 meter
+    # Setting the mean free path to 1 meter results in a density of 0.0078958 g/cm^3
+    rho = mfp*0.0078958
+    
+    print '|==============================================================================|'
+    print '|   version = %s    geom = %s    N = %5u    F = %7.3f    mfp = %8.3f   |' % (version,geom,N,F,mfp)
+    print '|==============================================================================|'
+    
+    # Determine whether parameters are valid
+    
+    # N must be between the minimum value and maximum value
+    if   version == 'nat' and geom == '2s':
+        valid_N = N >= min_N and N <= max_N_nat_2s
+    elif version == 'nat' and geom == '2j':
+        valid_N = N >= min_N and N <= max_N_nat_2j
+    elif version == 'dag' and (geom == '2s' or geom == '2j'):
+        valid_N = N >= min_N and N <= max_N_dag
+    else:
+        valid_N = False
+    
+    # F must be between the minimum value and maximum value
+    if   version == 'nat' and (geom == '2s' or geom == '2j'):
+        valid_F = F >= min_F_nat and F <= max_F
+    elif version == 'dag' and (geom == '2s' or geom == '2j'):
+        valid_F = F >= min_F_dag and F <= max_F
+    else:
+        valid_F = False
 
-                    print '|==============================================================================|'
-                    print '|   version = %s    geom = %s    N = %5u    F = %7.3f    mfp = %8.3f   |' % (version,geom,N,F,mfp)
-                    print '|==============================================================================|'
-                    
-                    # Determine whether parameters are valid
-                    if   version == 'nat' and geom == '2s':
-                        valid_N = N >= min_N and N <= max_N_nat_2s
-                    elif version == 'nat' and geom == '2j':
-                        valid_N = N >= min_N and N <= max_N_nat_2j
-                    elif version == 'dag' and (geom == '2s' or geom == '2j'):
-                        valid_N = N >= min_N and N <= max_N_dag
-                    else:
-                        valid_N = False
-                    if   version == 'nat' and (geom == '2s' or geom == '2j'):
-                        valid_F = F >= min_F_nat and F <= max_F
-                    elif version == 'dag' and (geom == '2s' or geom == '2j'):
-                        valid_F = F >= min_F_dag and F <= max_F
-                    else:
-                        valid_F = False
-                    valid_mfp = mfp >= 0
-                    
-                    if not valid_N or not valid_F or not valid_mfp:
-                        print 'Invalid parameters'
-                        continue
-                    
-                    fname = 'zCube_%s_%s_%u_%.0f_%.2f' % (version,geom,N,F,mfp) # base filename (no extension)
-                    
-                    # Write input files
-                    if version == 'nat' and (geom == '2s' or geom == '2j'):     # Native MCNP, 2 dimensions
-                        
-                        write_title(fname,geom,N,F,rho,ctme)                    # Write title cards
-                        if   geom == '2s':
-                            write_cells_2s(fname,geom,N,F,rho,ctme)             # Append cell cards; separate cells
-                        elif geom == '2j':
-                            write_cells_2j(fname,geom,N,F,rho,ctme)             # Append cell cards; joined cells
-                        write_surfaces_2(fname,geom,N,F,rho,ctme)               # Append surface cards
-                        write_data_nat_2(fname,geom,N,F,rho,ctme)               # Append data cards
-                        
-                        write_job(fname,version,geom,N,F,rho,ctme)              # Write HPC job file
-                        write_master_job(fname)                                 # Append instructions to master job file
-                        write_local_run(fname,version)                          # Append instructions to local run file
-                        
-                    if version == 'dag' and (geom == '2s' or geom == '2j'):     # DAG-MCNP, 2 dimensions
-                        
-                        write_data_dag_2(fname,geom,N,F,rho,ctme)               # Write MCNP data cards for DAG
-                        write_cubit_2(fname,geom,N,F,rho,ctme)                  # Write CUBIT instructions; separate cells
-                        call('cubit -batch -nographics -nojournal -information=off '+direc+fname+'.jou',shell=True)
+    # mfp must be greater than or equal to zero
+    valid_mfp = mfp >= 0
+    
+    if not valid_N or not valid_F or not valid_mfp:
+        print 'Invalid parameters'
+        continue
+    
+    fname = 'zCube_%s_%s_%u_%.0f_%.2f' % (version,geom,N,F,mfp)                 # base filename (no extension)
+    
+    # Write input files
+    if version == 'nat' and (geom == '2s' or geom == '2j'):                     # Native MCNP, 2 dimensions
+        
+        write_title(fname,geom,N,F,rho,ctme)                                    # Write title cards
+        if   geom == '2s':
+            write_cells_2s(fname,geom,N,F,rho,ctme)                             # Append cell cards; separate cells
+        elif geom == '2j':
+            write_cells_2j(fname,geom,N,F,rho,ctme)                             # Append cell cards; joined cells
+        write_surfaces_2(fname,geom,N,F,rho,ctme)                               # Append surface cards
+        write_data_nat_2(fname,geom,N,F,rho,ctme)                               # Append data cards
+        
+        write_job(fname,version,geom,N,F,rho,ctme)                              # Write HPC job file
+        write_master_job(fname)                                                 # Append instructions to master job file
+        write_local_run(fname,version)                                          # Append instructions to local run file
+        
+    if version == 'dag' and (geom == '2s' or geom == '2j'):                     # DAG-MCNP, 2 dimensions
+        
+        write_data_dag_2(fname,geom,N,F,rho,ctme)                               # Write MCNP data cards for DAG
+        write_cubit_2(fname,geom,N,F,rho,ctme)                                  # Write CUBIT instructions; separate cells
+        call('cubit -batch -nographics -nojournal -information=off '+direc+fname+'.jou',shell=True)
                                                                                 # Run CUBIT from command line
-                        call('dagmc_preproc -f 1.0e-4 '+direc+fname+'.sat -o '+direc+fname+'.h5m',shell=True)
+        call('dagmc_preproc -f 1.0e-4 '+direc+fname+'.sat -o '+direc+fname+'.h5m',shell=True)
                                                                                 # DAGMC pre-processing
-                        
-                        write_job(fname,version,geom,N,F,rho,ctme)              # Write HPC job file
-                        write_master_job(fname)                                 # Append instructions to master job file
-                        write_local_run(fname,version)                          # Append instructions to local run file
-                    
-                    # Record time taken
-                    write_time = time.time()-start_time
-                    print '%.3f seconds' % (write_time)
-                    writer = open(direc+'timing.txt','a')
-                    print >> writer, '%s %s %5u %7.3f %7.3f %16.8f' % (version,geom,N,F,mfp,write_time)
-                    writer.close()
+        
+        write_job(fname,version,geom,N,F,rho,ctme)                              # Write HPC job file
+        write_master_job(fname)                                                 # Append instructions to master job file
+        write_local_run(fname,version)                                          # Append instructions to local run file
+    
+    # Record time taken
+    write_time = time.time()-start_time
+    print '%.3f seconds' % (write_time)
+    writer = open(direc+'timing.txt','a')
+    print >> writer, '%s %s %5u %7.3f %7.3f %16.8f' % (version,geom,N,F,mfp,write_time)
+    writer.close()
 
 # Make master job script executable
 call('chmod 770 '+direc+'submit_jobs.sh',shell=True)

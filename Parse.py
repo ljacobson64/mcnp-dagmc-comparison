@@ -1,3 +1,4 @@
+import itertools
 import os
 
 # Parse output files for CTM and NPS
@@ -55,12 +56,12 @@ params = reader.readlines()
 
 global direc
 direc      =                    params[0].split()[0 ]                            # directory to place files
-N_vals     = [  int(i) for i in params[1].split()[1:]]                           # list of values of N
-F_vals     = [float(i) for i in params[2].split()[1:]]                           # list of values of F
-mfps       = [float(i) for i in params[3].split()[1:]]                           # list of number of mean free paths in 1 m
-geoms      =                    params[4].split()[1:]                            # list of geometry configurations
-ctme       =  float(            params[5].split()[1 ])                           # computer time
-versions   =                    params[6].split()[1:]                            # list of MCNP versions
+versions   =                    params[1].split()[1:]                            # list of MCNP versions
+geoms      =                    params[2].split()[1:]                            # list of geometry configurations
+N_vals     = [  int(i) for i in params[3].split()[1:]]                           # list of values of N
+F_vals     = [float(i) for i in params[4].split()[1:]]                           # list of values of F
+mfps       = [float(i) for i in params[5].split()[1:]]                           # list of number of mean free paths in 1 m
+ctme       =  float(            params[6].split()[1 ])                           # computer time
 
 reader.close()
 
@@ -68,18 +69,17 @@ if os.path.isfile('Cube_results.txt') == True:
     os.remove('Cube_results.txt')
 
 # Parse output
-for version in versions:                                                        # loop for all MCNP versions
-    for geom in geoms:                                                          # loop for all geometry configurations
-        for N in N_vals:                                                        # loop for all values of N
-            for F in F_vals:                                                    # loop for all values of F
-                for mfp in mfps:                                                # loop for all values of mfp
-                    
-                    fname = 'zCube_%s_%s_%u_%.0f_%.2f' % (version,geom,N,F,mfp) # base filename (no extension)
-                    
-                    # Parse MCNP output file
-                    parse_output_file(fname,version,geom,N,F,mfp,'Cube_results.txt')
-                                                                                # parse output file for CTM and NPS
-                    print fname
+for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
+    version = params[0]                                                         # loop for all MCNP versions
+    geom    = params[1]                                                         # loop for all geometry configurations
+    N       = params[2]                                                         # loop for all values of N
+    F       = params[3]                                                         # loop for all values of F
+    mfp     = params[4]                                                         # loop for all values of mfp
+    
+    fname = 'zCube_%s_%s_%u_%.0f_%.2f' % (version,geom,N,F,mfp)                 # base filename (no extension)
+    
+    parse_output_file(fname,version,geom,N,F,mfp,'Cube_results.txt')            # parse output file for CTM and NPS
+    print fname
 
 # Display output in command window
 f = open('Cube_results.txt','r')
