@@ -52,16 +52,17 @@ def parse_output_file(fname,version,geom,N,F,mfp,fname_res):
 
 # Open file containing parameters to vary
 reader = open('params.txt','r')
-params = reader.readlines()
+params_str = reader.readlines()
 
 global direc
-direc      =                    params[0].split()[0 ]                            # directory to place files
-versions   =                    params[1].split()[1:]                            # list of MCNP versions
-geoms      =                    params[2].split()[1:]                            # list of geometry configurations
-N_vals     = [  int(i) for i in params[3].split()[1:]]                           # list of values of N
-F_vals     = [float(i) for i in params[4].split()[1:]]                           # list of values of F
-mfps       = [float(i) for i in params[5].split()[1:]]                           # list of number of mean free paths in 1 m
-ctme       =  float(            params[6].split()[1 ])                           # computer time
+direc      =                    params_str[0].split()[0 ]                        # directory to place files
+versions   =                    params_str[1].split()[1:]                        # list of MCNP versions
+geoms      =                    params_str[2].split()[1:]                        # list of geometry configurations
+N_vals     = [  int(i) for i in params_str[3].split()[1:]]                       # list of values of N
+F_vals     = [float(i) for i in params_str[4].split()[1:]]                       # list of values of F
+mfps       = [float(i) for i in params_str[5].split()[1:]]                       # list of number of mean free paths in 1 m
+ctme       =  float(            params_str[6].split()[1 ])                       # computer time
+mfp_in     =  float(            params_str[7].split()[1 ])                       # mfp for pre-existing LCAD file
 
 reader.close()
 
