@@ -21,6 +21,11 @@ def write_title(fname,geom,N,F,rho,ctme):
 # Write cell cards; 2 dimensions; separate cells
 def write_cells_2s(fname,geom,N,F,rho,ctme):
     
+    if rho == 0:
+        mat_str = '0            '
+    else:
+        mat_str = '1 -%10.8f' % (rho)
+    
     fname_i = '%s.i' % (fname)
     writer = open(direc+fname_i,'a')
     
@@ -31,13 +36,13 @@ def write_cells_2s(fname,geom,N,F,rho,ctme):
     print >> writer, '   14 0              09000 -09999  04999'
     print >> writer, '   15 0              09000 -09999  01000 -04999        -05000'
     print >> writer, '   16 0              09000 -09999  01000 -04999  08999'
-    print >> writer, '    1 1 -%.8f  09000 -09999  %u -04999  %u -08999' % (rho,10000+N,50000+N)
-    print >> writer, '    2 1 -%.8f  09000 -09999  01000 -%u  %u -08999' % (rho,10000+N,50000+N)
-    print >> writer, '    3 1 -%.8f  09000 -09999  %u -04999  05000 -%u' % (rho,10000+N,50000+N)
+    print >> writer, '    1 %s  09000 -09999  %u -04999  %u -08999' % (mat_str,10000+N,50000+N)
+    print >> writer, '    2 %s  09000 -09999  01000 -%u  %u -08999' % (mat_str,10000+N,50000+N)
+    print >> writer, '    3 %s  09000 -09999  %u -04999  05000 -%u' % (mat_str,10000+N,50000+N)
     for j in range(1,N):
-        print >> writer, '%u 1 -%.8f  09000 -09999  %u -%u  %u -%u'      % (10000+j,rho,10000+j,10000+N,50000+N-j,50000+N-j+1)
-        print >> writer, '%u 1 -%.8f  09000 -09999  01000 -%u  %u -%u'   % (50000+j,rho,10000+j,50000+N-j,50000+N-j+1)
-    print >> writer, '%u 1 -%.8f  09000 -09999  01000 -%u  05000 -50001' % (50000+N,rho,10000+N)
+        print >> writer, '%u %s  09000 -09999  %u -%u  %u -%u'      % (10000+j,mat_str,10000+j,10000+N,50000+N-j,50000+N-j+1)
+        print >> writer, '%u %s  09000 -09999  01000 -%u  %u -%u'   % (50000+j,mat_str,10000+j,50000+N-j,50000+N-j+1)
+    print >> writer, '%u %s  09000 -09999  01000 -%u  05000 -50001' % (50000+N,mat_str,10000+N)
     print >> writer, ''
     
     writer.close()
@@ -45,17 +50,22 @@ def write_cells_2s(fname,geom,N,F,rho,ctme):
 # Write cell cards; 2 dimensions; joined cells
 def write_cells_2j(fname,geom,N,F,rho,ctme):
 	
+    if rho == 0:
+        mat_str = '0            '
+    else:
+        mat_str = '1 -%10.8f' % (rho)
+    
     fname_i = '%s.i' % (fname)
     writer = open(direc+fname_i,'a')
     
     print >> writer, 'c CELL CARDS'
     print >> writer, '   11 0              09999:-09000: 04999:-01000: 08999:-05000'
-    print >> writer, '    1 1 -%.8f  09000 -09999 -04999 -08999 (' % (rho)
+    print >> writer, '    1 %s  09000 -09999 -04999 -08999 (' % (mat_str)
     print >> writer, '                     01000  %u:'             % (50000+N)
     for j in range(1,N):
         print >> writer, '                     %u  %u:'            % (10000+j,50000+N-j)
     print >> writer, '                     %u  05000)'             % (10000+N)
-    print >> writer, '    2 1 -%.8f  09000 -09999  01000  05000 (' % (rho)
+    print >> writer, '    2 %s  09000 -09999  01000  05000 (' % (mat_str)
     for j in range(1,N):
         print >> writer, '                    -%u -%u:'            % (10000+j,50000+N-j+1)
     print >> writer, '                    -%u -%u)'                % (10000+N,50000+1)
@@ -200,8 +210,9 @@ def write_cubit_2(fname,geom,N,F,rho,ctme):
     print >> writer, 'move volume %u location 50 50 50'         % (g_ind+1)
     print >> writer, 'subtract %u from %u'                      % (g_ind,g_ind+1)
     print >> writer, 'group "graveyard" add volume %u'          % (g_ind+2)
-    print >> writer, 'group "mat_1_rho_-%.8f" add volume all'   % (rho)
-    print >> writer, 'group "mat_1_rho_-%.8f" remove volume %u' % (rho,g_ind+2)
+    if rho != 0:
+        print >> writer, 'group "mat_1_rho_-%.8f" add volume all'   % (rho)
+        print >> writer, 'group "mat_1_rho_-%.8f" remove volume %u' % (rho,g_ind+2)
     print >> writer, 'merge all'
     print >> writer, 'imprint body all'
     print >> writer, 'set geometry version 1902'
