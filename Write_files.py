@@ -5,8 +5,8 @@ import time
 
 # Determine filename
 def determine_filename(version,geom,N,F,mfp):
-
-    fname = 'zCube_%s_%s_%u_%.0f_%.2f' % (version,geom,N,F,mfp)                 # base filename (no extension)
+    
+    fname = 'zCube_%s_%s_%u_%.0f_%.3f' % (version,geom,N,F,mfp)                 # base filename (no extension)
     return fname
 
 # Write title cards
@@ -273,6 +273,32 @@ def modify_lcad(fname_in,fname_out,rho):
     reader.close()
     writer.close()
 
+# Write script to run CUBIT and DAGMC pre-processing
+def run_cdp(fname):
+    
+    fname_cdp_sh = '%s.cdp.sh' % (fname)
+    writer = open(direc+fname_cdp_sh,'w')
+    
+    print >> writer, '#!/bin/bash'
+    print >> writer, ''
+    print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou' % (fname)
+    print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                    % (fname,fname)
+    
+    writer.close()
+
+# Write script to run all CUBIT and DAGMC-preprocessing scripts in background
+def run_cdp_nohup(fname,N):
+    
+    writer = open(direc+'cdp_'+str(N)+'.sh','a')
+    
+    if writer.tell() == 0:
+        print >> writer, '#!/bin/bash'
+        print >> writer, ''
+    
+    print >> writer, 'nohup %s.cdp.sh > %s.dmp &' % (fname,fname)
+    
+    writer.close()
+
 # Write local run script
 def write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in):
     
@@ -281,7 +307,7 @@ def write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in):
     if writer.tell() == 0:
         print >> writer, '#!/bin/bash'
         print >> writer, ''
-    if   version == 'nat':
+    if   version == 'nat':# Write script to run CUBIT and DAGMC pre-processing
         print >> writer, 'mcnp5 n=%s.i'                              % (fname)
     elif version == 'dag' and mfp_in > 0:
         fname_in = determine_filename(version,geom,N,F,mfp_in)
@@ -291,13 +317,14 @@ def write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in):
     
     writer.close()
 
-# Write HPC job script
+# Write ACI job script
 def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
     
-    fname_sh = '%s.sh' % (fname)
-    writer = open(direc+fname_sh,'w')
+    fname_aci_sh = '%s.sh' % (fname)
+    writer = open(direc+fname_aci_sh,'w')
     
     print >> writer, '#!/bin/bash'
+    print >> writer, ''
     print >> writer, '#SBATCH --partition=univ'                                 # default "univ" if not specified
     print >> writer, '#SBATCH --time=0-00:06:00'                                # run time in days-hh:mm:ss
     print >> writer, '#SBATCH --ntasks=1'                                       # number of CPUs
@@ -349,7 +376,7 @@ reader.close()
 
 min_N        =      1
 max_N_nat_2s =  40000
-max_N_nat_2j =   1000
+max_N_nat_2j =   2000
 max_N_dag    =  40000
 min_F_nat    =      0
 min_F_dag    =      0.001
@@ -369,9 +396,9 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     # Setting the mean free path to 1 meter results in a density of 0.0078958 g/cm^3
     rho = mfp*0.0078958
     
-    print '|==============================================================================|'
-    print '|   version = %s    geom = %s    N = %5u    F = %7.3f    mfp = %8.3f   |' % (version,geom,N,F,mfp)
-    print '|==============================================================================|'
+    # print '|==============================================================================|'
+    # print '|   version = %s    geom = %s    N = %5u    F = %7.3f    mfp = %8.3f   |' % (version,geom,N,F,mfp)
+    # print '|==============================================================================|'
     
     # Determine whether parameters are valid
     
@@ -419,24 +446,22 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
             fname_in = 'zCube_%s_%s_%u_%.0f_%.2f' % (version,geom,N,F,mfp_in)
             modify_lcad(fname_in,fname,rho)
         else:
-            write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions; separate cells
-            call('cubit -batch -nographics -nojournal -information=off '+direc+fname+'.jou',shell=True)
-                                                                                # Run CUBIT from command line
-            call('dagmc_preproc -f 1.0e-4 '+direc+fname+'.sat -o '+direc+fname+'.h5m',shell=True)
-                                                                                # DAGMC pre-processing
+            write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions
+            run_cdp(fname)                                                      # Write script to run CUBIT and DAGMC pre-processing
+            run_cdp_nohup(fname,N)                                              # Append instructions to C+DP run file
 
         write_data_dag_2(fname,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards for DAG
 
     write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in)                     # Append instructions to local run file
-    write_job(fname,version,geom,N,F,rho,ctme,mfp_in)                           # Write HPC job file
+    write_job(fname,version,geom,N,F,rho,ctme,mfp_in)                           # Write ACI job file
     write_master_job(fname)                                                     # Append instructions to master job file
     
     # Record time taken
     write_time = time.time()-start_time
-    print '%.3f seconds' % (write_time)
+    print '%s %s %5u %7.3f %8.3f %16.8f' % (version,geom,N,F,mfp,write_time)
     writer = open(direc+'timing.txt','a')
-    print >> writer, '%s %s %5u %7.3f %7.3f %16.8f' % (version,geom,N,F,mfp,write_time)
+    print >> writer, '%s %s %5u %7.3f %8.3f %16.8f' % (version,geom,N,F,mfp,write_time)
     writer.close()
 
-# Make master job script executable
-call('chmod 770 '+direc+'submit_jobs.sh',shell=True)
+# Make all scripts executable
+call('chmod 770 '+direc+'*.sh',shell=True)
