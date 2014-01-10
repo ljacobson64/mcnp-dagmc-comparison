@@ -332,7 +332,42 @@ def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
     print >> writer, '#!/bin/bash'
     print >> writer, ''
     print >> writer, '#SBATCH --partition=univ'                                 # default "univ" if not specified
-    print >> writer, '#SBATCH --time=0-00:06:00'                                # run time in days-hh:mm:ss
+    
+    # Determine how much time to add to ctme to account for the runtpe creation time
+    if version == 'nat':
+        if geom == '2s':
+            if N <= 4000:
+                time_runtpe = 1
+            elif N <= 20000:
+                time_runtpe = 5
+            elif N <= 40000:
+                time_runtpe = 120                                               # guess 2 hours
+        elif geom == '2j' and mfp <= 100:
+            if N <= 100:
+                time_runtpe = 1
+            elif N <= 400:
+                time_runtpe = 5
+            elif N <= 1000:
+                time_runtpe = 120                                               # guess 2 hours
+            elif N <= 2000:
+                time_runepe = 720                                               # guess 12 hours
+        elif geom == '2j' and mfp <= 1000:
+            if N <= 40:
+                time_runtpe = 1
+            elif N <= 200:
+                time_runtpe = 5
+            elif N <= 400:
+                time_runtpe = 120                                               # guess 2 hours
+            elif N <= 1000:
+                time_runtpe = 720                                               # guess 12 hours
+            elif N <= 2000:
+                time_runtpe = 4320                                              # guess 72 hours
+    elif version == 'dag':
+        time_runtpe = 5                                                         # placeholder; guess 5 minutes for now
+    if 'time_runtpe' not in locals():
+        time_runtpe = 5
+    
+    print >> writer, '#SBATCH --time=0-00:%u:00' % (time_runtpe+ctme)           # run time in days-hh:mm:ss
     print >> writer, '#SBATCH --ntasks=1'                                       # number of CPUs
     print >> writer, '#SBATCH --mem-per-cpu=2000'                               # RAM in MB (default 4GB, max 8GB)
     print >> writer, '#SBATCH --error=/home/ljjacobson/%s.err'   % (fname)      # location of error file
@@ -381,7 +416,8 @@ mfp_in   =  float(            params_str[7].split()[1 ])                        
 reader.close()
 
 min_N        =      1
-max_N_nat    =  40000
+max_N_nat_2s =  40000
+max_N_nat_2j =   2000
 max_N_dag    =  40000
 min_F_nat    =      0
 min_F_dag    =      0.001
@@ -416,8 +452,10 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     valid_version = version == 'nat' or version == 'dag'                        # version must be nat or dag
     valid_geom = geom == '2s' or geom == '2j'                                   # geom must be 2s or 2j
     
-    if   version == 'nat' and (geom == '2s' or geom == '2j'):                   # N must be between the minimum value and maximum value
-        valid_N = N >= min_N and N <= max_N_nat
+    if   version == 'nat' and geom == '2s':                                     # N must be between the minimum value and maximum value
+        valid_N = N >= min_N and N <= max_N_nat_2s
+    elif version == 'nat' and geom == '2j':
+        valid_N = N >= min_N and N <= max_N_nat_2j
     elif version == 'dag' and (geom == '2s' or geom == '2j'):
         valid_N = N >= min_N and N <= max_N_dag
     else:
