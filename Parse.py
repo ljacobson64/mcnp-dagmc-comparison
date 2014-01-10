@@ -86,6 +86,7 @@ if os.path.isfile('Cube_results.txt') == True:
 
 # Parse output
 for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
+    
     version = params[0]                                                         # loop for all MCNP versions
     geom    = params[1]                                                         # loop for all geometry configurations
     N       = params[2]                                                         # loop for all values of N

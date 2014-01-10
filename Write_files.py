@@ -274,7 +274,7 @@ def modify_lcad(fname_in,fname_out,rho):
     writer.close()
 
 # Write script to run CUBIT and DAGMC pre-processing
-def run_cdp(fname):
+def write_cdp_run(fname):
     
     fname_cdp_sh = '%s.cdp.sh' % (fname)
     writer = open(direc+fname_cdp_sh,'w')
@@ -287,15 +287,19 @@ def run_cdp(fname):
     writer.close()
 
 # Write script to run all CUBIT and DAGMC-preprocessing scripts in background
-def run_cdp_nohup(fname,N):
+def write_cdp_master(fname,fid,max_concurrent):
     
-    writer = open(direc+'cdp_'+str(N)+'.sh','a')
+    writer = open(direc+'cdp.sh','a')
     
     if writer.tell() == 0:
         print >> writer, '#!/bin/bash'
         print >> writer, ''
     
-    print >> writer, 'nohup %s.cdp.sh > %s.dmp &' % (fname,fname)
+    print >> writer, 'echo %s'                        % (fname)
+    if (fid % max_concurrent) == 0:
+        print >> writer, 'sh %s.cdp.sh > %s.cdpout'   % (fname,fname)           # Run CUBIT+DAGMC_preproc script, wait for completion
+    else:
+        print >> writer, 'sh %s.cdp.sh > %s.cdpout &' % (fname,fname)           # Run CUBIT+DAGMC_preproc script, do not wait for completion
     
     writer.close()
 
@@ -307,7 +311,9 @@ def write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in):
     if writer.tell() == 0:
         print >> writer, '#!/bin/bash'
         print >> writer, ''
-    if   version == 'nat':# Write script to run CUBIT and DAGMC pre-processing
+    
+    # Write script to run CUBIT and DAGMC pre-processing
+    if   version == 'nat':
         print >> writer, 'mcnp5 n=%s.i'                              % (fname)
     elif version == 'dag' and mfp_in > 0:
         fname_in = determine_filename(version,geom,N,F,mfp_in)
@@ -343,7 +349,7 @@ def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
     writer.close()
     
 # Write master job script
-def write_master_job(fname):
+def write_job_master(fname):
     
     writer = open(direc+'submit_jobs.sh','a')
     
@@ -375,15 +381,20 @@ mfp_in   =  float(            params_str[7].split()[1 ])                        
 reader.close()
 
 min_N        =      1
-max_N_nat_2s =  40000
-max_N_nat_2j =   2000
+max_N_nat    =  40000
 max_N_dag    =  40000
 min_F_nat    =      0
 min_F_dag    =      0.001
 max_F        =    100
 
+max_concurrent = len(F_vals)
+fid = 0
+
 # Write input files and job scripts
 for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
+    
+    fid = fid+1
+    
     version = params[0]                                                         # loop for all MCNP versions
     geom    = params[1]                                                         # loop for all geometry configurations
     N       = params[2]                                                         # loop for all values of N
@@ -405,10 +416,8 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     valid_version = version == 'nat' or version == 'dag'                        # version must be nat or dag
     valid_geom = geom == '2s' or geom == '2j'                                   # geom must be 2s or 2j
     
-    if   version == 'nat' and geom == '2s':                                     # N must be between the minimum value and maximum value
-        valid_N = N >= min_N and N <= max_N_nat_2s
-    elif version == 'nat' and geom == '2j':
-        valid_N = N >= min_N and N <= max_N_nat_2j
+    if   version == 'nat' and (geom == '2s' or geom == '2j'):                   # N must be between the minimum value and maximum value
+        valid_N = N >= min_N and N <= max_N_nat
     elif version == 'dag' and (geom == '2s' or geom == '2j'):
         valid_N = N >= min_N and N <= max_N_dag
     else:
@@ -447,14 +456,14 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
             modify_lcad(fname_in,fname,rho)
         else:
             write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions
-            run_cdp(fname)                                                      # Write script to run CUBIT and DAGMC pre-processing
-            run_cdp_nohup(fname,N)                                              # Append instructions to C+DP run file
+            write_cdp_run(fname)                                                # Write script to run CUBIT and DAGMC pre-processing
+            write_cdp_master(fname,fid,max_concurrent)                          # Append instructions to C+DP run file
 
         write_data_dag_2(fname,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards for DAG
 
     write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in)                     # Append instructions to local run file
     write_job(fname,version,geom,N,F,rho,ctme,mfp_in)                           # Write ACI job file
-    write_master_job(fname)                                                     # Append instructions to master job file
+    write_job_master(fname)                                                     # Append instructions to master job file
     
     # Record time taken
     write_time = time.time()-start_time
