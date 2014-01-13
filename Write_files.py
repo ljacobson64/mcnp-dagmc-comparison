@@ -339,29 +339,29 @@ def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
             if N <= 4000:
                 time_runtpe = 1
             elif N <= 20000:
-                time_runtpe = 5
+                time_runtpe = 10
             elif N <= 40000:
-                time_runtpe = 120                                               # guess 2 hours
+                time_runtpe = 60
         elif geom == '2j' and mfp <= 100:
             if N <= 100:
                 time_runtpe = 1
             elif N <= 400:
-                time_runtpe = 5
+                time_runtpe = 10
             elif N <= 1000:
-                time_runtpe = 120                                               # guess 2 hours
+                time_runtpe = 240
             elif N <= 2000:
-                time_runepe = 720                                               # guess 12 hours
+                time_runtpe = 1200
         elif geom == '2j' and mfp <= 1000:
             if N <= 40:
                 time_runtpe = 1
             elif N <= 200:
                 time_runtpe = 5
             elif N <= 400:
-                time_runtpe = 120                                               # guess 2 hours
+                time_runtpe = 20
             elif N <= 1000:
-                time_runtpe = 720                                               # guess 12 hours
+                time_runtpe = 840
             elif N <= 2000:
-                time_runtpe = 4320                                              # guess 72 hours
+                time_runtpe = 4200
     elif version == 'dag':
         time_runtpe = 5                                                         # placeholder; guess 5 minutes for now
     if 'time_runtpe' not in locals():
