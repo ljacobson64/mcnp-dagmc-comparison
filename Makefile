@@ -13,4 +13,5 @@ parse:
 	python Parse.py
 
 clean:
-	rm -f $(DIR)zCube_* $(DIR)submit_jobs.sh $(DIR)out.sat comou* out* runtp* fort* 
+	rm -f $(DIR)zCube_* $(DIR)cdp.sh $(DIR)submit_jobs.sh $(DIR)local_runs.sh $(DIR)timing.txt
+	rm -f $(DIR)out.sat $(DIR)out* $(DIR)runtp* $(DIR)fcad* $(DIR)lcad* $(DIR)comou* $(DIR)fort*
