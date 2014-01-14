@@ -1,3 +1,33 @@
+"""
+
+Automated MCNP5 Input File Generator
+
+Author: Lucas Jacobson
+
+Advisors: P.P.H. Wilson, Andrew Davis
+
+The file "params.txt" should contain the following entries:
+Line 1: Directory. Must include final slash.
+Line 2: List of versions. "nat" represents native MCNP5 and "dag" represents DAG-MCNP5.
+Line 3: List of geometry configurations. "2s" represents two-dimensional steps with separate cell
+        definitions; "2j" represents two-dimensional steps with joined cell definitions. "3s" and
+        "3j" may become options in the future.
+Line 4: List of values of N (integer from 1 to 40000). N is the number of steps in the geometry.
+Line 5: List of values of F (0.001 to 100). F is the portion of the geometry containing the steps.
+        For example, an F of 0.001 would mean that all the steps would be condensed into a very
+        small space in a corner, whereas an F of 100 would mean that the steps would comprise an
+        entire square diagonal.
+Line 6: List of values of mfp (0 to 1000). mfp is the number of mean-free paths of pure deuterium
+        in one meter. The required density is obtained simply by multiplying mfp by 0.0078958.
+Line 7: Computer time in minutes. Most runs will take a total of ctme+1 minutes to run, but some
+        will take an additional few minutes to create the runtpe file. The most extreme cases
+        require over a day of extra time to account for runtpe file creation.
+Line 8: If running in DAG-MCNP mode and mfp_in > 0, CUBIT and dagmc_preproc are not run. Rather, an
+        existing .h5m file with identical geometry but different density is used, and the only
+        things changed are the density entries on the LCAD card.
+
+"""
+
 from subprocess import call
 import itertools
 import math
