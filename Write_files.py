@@ -179,7 +179,7 @@ def write_data_dag_2(fname,geom,N,F,rho,ctme,mfp_in):
         else:
             cell_src = 2*N-int(y_src*N/F)
     elif geom == '2j':
-        if N == 1 and F == 100:
+        if N == 1 and F > x_src:
             cell_src = 1
         else:
             cell_src = N+1
@@ -541,4 +541,4 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     writer.close()
 
 # Make all scripts executable
-call('chmod 770 '+direc+'*.sh',shell=True)
+call('chmod 740 '+direc+'*.sh',shell=True)
