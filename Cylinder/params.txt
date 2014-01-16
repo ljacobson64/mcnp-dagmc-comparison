@@ -1,0 +1,8 @@
+/filespace/people/l/lucasj/CNERG/test/
+/filespace/people/l/lucasj/CNERG/Results/
+versions  nat
+H_vals    50 100
+D_vals    50 100
+mfps      0 1
+tol       1e-4 1e-3
+ctme      0.01
