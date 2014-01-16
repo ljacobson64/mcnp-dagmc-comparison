@@ -35,7 +35,11 @@ import time
 # Determine filename
 def determine_filename(version,geom,N,F,mfp):
     
-    fname = 'zCube_%s_%s_%u_%.0f_%.0e' % (version,geom,N,F,mfp)                 # base filename (no extension)
+    N_str   = ('%5u'   % (N  )).replace(' ','_')
+    F_str   = ('%2.0f' % (F  )).replace(' ','_')
+    mfp_str = ('%6.2f' % (mfp)).replace(' ','_')
+    
+    fname = 'zCube_%s_%s_%s_%s_%s' % (version,geom,N_str,F_str,mfp_str)         # base filename (no extension)
     return fname
 
 # Write title cards
