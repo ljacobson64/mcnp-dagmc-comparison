@@ -375,8 +375,6 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     F       = params[3]                                                         # loop for all values of F
     mfp     = params[4]                                                         # loop for all values of mfp
     
-    start_time = time.time()
-    
     # Calculate mass density of deuterium from input number of mean free paths in 1 meter
     # Setting the mean free path to 1 meter results in a density of 0.0078958 g/cm^3
     rho = mfp*0.0078958
@@ -407,6 +405,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
         continue
     
     fname = determine_filename(version,geom,N,F,mfp)                            # base filename (no extension)
+    print fname
     
     # Write input files
     if version == 'nat' and (geom == '2s' or geom == '2j'):                     # Native MCNP, 2 dimensions
@@ -438,13 +437,6 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     write_job(fname,version,geom,N,F,rho,ctme,mfp_in)                           # Write ACI job file
     write_job_master(fname)                                                     # Append instructions to master job file
     
-    # Record time taken
-    write_time = time.time()-start_time
-    print '%s %s %5u %7.3f %8.3f %16.8f' % (version,geom,N,F,mfp,write_time)
-    writer = open(direc+'timing.txt','a')
-    print >> writer, '%s %s %5u %7.3f %8.3f %16.8f' % (version,geom,N,F,mfp,write_time)
-    writer.close()
-
 # Write continue run script
 write_continue(ctme)
 
