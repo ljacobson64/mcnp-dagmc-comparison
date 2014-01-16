@@ -88,8 +88,8 @@ def write_data(fname,version,H,D,rho,tol,ctme):
     
     print >> writer, 'c DATA CARDS'
     print >> writer, 'MODE N'                                                   # neutron transport problem
-    print >> writer, 'IMP:N 0 1'                                                # neutron importance of 1 in the cylinder, 0 outside
     if version == 'nat':
+        print >> writer, 'IMP:N 1 0'                                            # neutron importance of 1 in the cylinder, 0 outside
         print >> writer, 'SDEF ERG=0.0000000253 X=0 Y=0 Z=%.8f' % (H/2)         # isotropic source of neutrons with an energy of 25.3 meV
     elif version == 'dag':
         print >> writer, 'SDEF ERG=0.0000000253 X=0 Y=0 Z=%.8f CELL=1' % (H/2)  # isotropic source of neutrons with an energy of 25.3 meV
@@ -115,6 +115,16 @@ def write_cubit(fname,H,D,rho,tol):
     # Write CUBIT commands to the specified file
     writer = open(direc+fname+'.jou','w')
     
+    print >> writer, 'cylinder height %.8f radius %.8f'      % (H,D/2)          # create cylinder
+    print >> writer, 'move volume 1 location x 0 y 0 z %.8f' % (H/2)
+    
+    print >> writer, 'brick x %.8f y %.8f z %.8f'            % (D+10,D+10,H+10) # inner graveyard brick
+    print >> writer, 'move volume 2 location x 0 y 0 z %.8f' % (H/2)
+    print >> writer, 'brick x %.8f y %.8f z %.8f'            % (D+20,D+20,H+20) # outer graveyard brick
+    print >> writer, 'move volume 3 location x 0 y 0 z %.8f' % (H/2)
+    print >> writer, 'subtract 2 from 3'                                        # subtract inner from outer
+    print >> writer, 'group "graveyard" add volume 4'                           # add the graveyard volume to the graveyard group
+    
     print >> writer, 'merge all'                                                # merge all
     print >> writer, 'imprint body all'                                         # imprint all
     print >> writer, 'set geometry version 1902'
@@ -134,7 +144,7 @@ def write_setup(fname,version,H,D,rho,tol,ctme):
         print >> writer, 'mcnp5 ix n=%s.i o=%s.setup.io'                               % (fname,fname)
     elif version == 'dag':
         print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou' % (fname)
-        print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                    % (fname,fname)
+        print >> writer, 'dagmc_preproc -f %.2e %s.sat -o %s.h5m'                      % (tol,fname,fname)
         
     writer.close()
 
@@ -258,7 +268,7 @@ for params in list(itertools.product(versions,H_vals,D_vals,mfps,tols)):
         
     elif version == 'dag':                                                      # DAG-MCNP
         
-        write_cubit_2(fname,H,D,mfp,tol)                                        # Write CUBIT instructions
+        write_cubit(fname,H,D,mfp,tol)                                          # Write CUBIT instructions
     
     write_data(fname,version,H,D,mfp,tol,ctme)                                  # Write MCNP data cards
 
