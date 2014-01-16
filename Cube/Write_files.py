@@ -130,8 +130,8 @@ def write_surfaces_2(fname,geom,N,F,rho):
     
     writer.close()
 
-# Write data cards; native MCNP; 2 dimensions
-def write_data_nat_2(fname,geom,N,F,rho,ctme,mfp_in):
+# Write data cards; 2 dimensions
+def write_data_2(fname,geom,N,F,rho,ctme,mfp_in):
     
     # Write data cards to the specified file
     writer = open(direc+fname+'.i','a')
@@ -142,25 +142,12 @@ def write_data_nat_2(fname,geom,N,F,rho,ctme,mfp_in):
         print >> writer, 'IMP:N 0 5R 1 %uR' % (2*N+1)
     elif geom == '2j':
         print >> writer, 'IMP:N 0 1 1'
-    print >> writer, 'SDEF ERG=0.0000000253 X=99.999 Y=99.999 Z=99.999'         # isotropic source of neutrons with an energy of 25.3 meV
+    if version == 'nat':                                                        # isotropic source of neutrons with an energy of 25.3 meV
+        print >> writer, 'SDEF ERG=0.0000000253 X=99.999 Y=99.999 Z=99.999'
+    elif version == 'dag':
+        print >> writer, 'SDEF ERG=0.0000000253 X=99.999 Y=99.999 Z=99.999 CELL=1'
     print >> writer, 'M1 1002.70C 1'                                            # material 1 is pure deuterium
     print >> writer, 'CTME %.8f' % (ctme)                                       # do not run simulation; only create runtpe file
-    print >> writer, ''
-    
-    writer.close()
-
-# Write data cards; DAG-MCNP; 2 dimensions
-def write_data_dag_2(fname,geom,N,F,rho,ctme,mfp_in):
-    
-    # Write data cards to the specified file
-    writer = open(direc+fname+'.i','a')
-    
-    print >> writer, 'DATA CARDS'
-    print >> writer, 'MODE N'                                                   # neutron transport problem
-    print >> writer, 'SDEF ERG=0.0000000253 X=99.999 Y=99.999 Z=99.999 CELL=1'  # isotropic source of neutrons with an energy of 25.3 meV
-    print >> writer, 'DAGMC CHECK_SRC_CELL=OFF'                                 # do not check starting cell
-    print >> writer, 'M1 1002.70C 1'                                            # material 1 is pure deuterium
-    print >> writer, 'CTME %.8f' % (ctme)                                       # amount of computer time to run the simulation
     print >> writer, ''
     
     writer.close()
@@ -383,12 +370,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     # Setting the mean free path to 1 meter results in a density of 0.0078958 g/cm^3
     rho = mfp*0.0078958
     
-    # print '|============================================================================|'
-    # print '|   version = %s    geom = %s    N = %5u    F = %7.3f    mfp = %6.2f   |' % (version,geom,N,F,mfp)
-    # print '|============================================================================|'
-    
     # Determine whether parameters are valid
-    
     valid_version = version == 'nat' or version == 'dag'                        # version must be nat or dag
     valid_geom = geom == '2s' or geom == '2j'                                   # geom must be 2s or 2j
     
@@ -420,7 +402,6 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
         elif geom == '2j':
             write_cells_2j(fname,geom,N,F,rho)                                  # Append cell cards; joined cells
         write_surfaces_2(fname,geom,N,F,rho)                                    # Append surface cards
-        write_data_nat_2(fname,geom,N,F,rho,ctme,mfp_in)                        # Append data cards
         
         write_setup(fname,version)                                              # Write script to create runtpe file
         write_setup_master(fname,fid,max_concurrent)                            # Append instructions to setup file
@@ -435,7 +416,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
             write_setup(fname,version)                                          # Write script to run CUBIT and DAGMC pre-processing
             write_setup_master(fname,fid,max_concurrent)                        # Append instructions to setup file
 
-        write_data_dag_2(fname,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards for DAG
+    write_data_2(fname,geom,N,F,rho,ctme,mfp_in)                                # Write MCNP data cards
 
     write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in)                     # Append instructions to local run file
     write_job(fname,version,geom,N,F,rho,ctme,mfp_in)                           # Write ACI job file
