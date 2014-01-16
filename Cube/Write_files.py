@@ -282,7 +282,7 @@ def write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in):
         print >> writer, ''
     
     print >> writer, 'echo %s'                                                % (fname)
-    if   version == 'nat':
+    if version == 'nat':
         print >> writer, 'mcnp5 c i=cont.i o=%s.io r=%s.ir > %s.out'          % (fname,fname,fname)
     elif version == 'dag' and mfp_in > 0:
         fname_in = determine_filename(version,geom,N,F,mfp_in)
@@ -309,7 +309,7 @@ def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
     print >> writer, '#SBATCH --error=/home/ljjacobson/%s.err'  % (fname)       # location of error file
     print >> writer, '#SBATCH --output=/home/ljjacobson/%s.out' % (fname)       # location of command output file
     print >> writer, ''
-    if   version == 'nat':                                                      # run MCNP
+    if version == 'nat':                                                      # run MCNP
         print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i o=%s.io r=%s.ir'          % (fname,fname)
     elif version == 'dag' and mfp_in > 0:
         fname_in = determine_filename(version,geom,N,F,mfp_in)
@@ -359,7 +359,6 @@ max_N_dag    =  40000
 min_F        =      0.1
 max_F        =     99.9
 
-max_concurrent = len(F_vals)
 fid = 0
 
 # Write input files and job scripts
@@ -381,7 +380,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     valid_version = version == 'nat' or version == 'dag'                        # version must be nat or dag
     valid_geom = geom == '2s' or geom == '2j'                                   # geom must be 2s or 2j
     
-    if   version == 'nat' and geom == '2s':                                     # N must be between the minimum value and maximum value
+    if version == 'nat' and geom == '2s':                                       # N must be between the minimum value and maximum value
         valid_N = N >= min_N and N <= max_N_nat_2s
     elif version == 'nat' and geom == '2j':
         valid_N = N >= min_N and N <= max_N_nat_2j
@@ -396,7 +395,12 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     if not valid_version or not valid_geom or not valid_N or not valid_F or not valid_mfp:
         print 'Invalid parameters'
         continue
-    
+
+    if version == 'nat':                                                        # maximum number of setup jobs running at once
+        max_concurrent = len(mfps)
+    elif version == 'dag':
+        max_concurrent = len(F_vals)
+        
     fname = determine_filename(version,geom,N,F,mfp)                            # base filename (no extension)
     print fname
     
@@ -404,7 +408,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     if version == 'nat' and (geom == '2s' or geom == '2j'):                     # Native MCNP, 2 dimensions
         
         write_title(fname,geom,N,F,rho)                                         # Write title cards
-        if   geom == '2s':
+        if geom == '2s':
             write_cells_2s(fname,geom,N,F,rho)                                  # Append cell cards; separate cells
         elif geom == '2j':
             write_cells_2j(fname,geom,N,F,rho)                                  # Append cell cards; joined cells
