@@ -135,18 +135,21 @@ def write_surfaces_2(fname,geom,N,F,rho):
     writer.close()
 
 # Write data cards; 2 dimensions
-def write_data_2(fname,geom,N,F,rho,ctme,mfp_in):
+def write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in):
     
     # Write data cards to the specified file
-    writer = open(direc+fname+'.i','a')
+    if version == 'nat':
+        writer = open(direc+fname+'.i','a')
+    elif version == 'dag':
+        writer = open(direc+fname+'.i','w')
     
     print >> writer, 'c DATA CARDS'
     print >> writer, 'MODE N'                                                   # neutron transport problem
-    if geom == '2s':                                                            # neutron importance of 1 in the cube, 0 in the rest of universe
-        print >> writer, 'IMP:N 0 5R 1 %uR' % (2*N+1)
-    elif geom == '2j':
-        print >> writer, 'IMP:N 0 1 1'
-    if version == 'nat':                                                        # isotropic source of neutrons with an energy of 25.3 meV
+    if version == 'nat':
+        if geom == '2s':                                                        # neutron importance of 1 in the cube, 0 in the rest of universe
+            print >> writer, 'IMP:N 0 5R 1 %uR' % (2*N+1)
+        elif geom == '2j':
+            print >> writer, 'IMP:N 0 1 1'
         print >> writer, 'SDEF ERG=0.0000000253 X=99.999 Y=99.999 Z=99.999'
     elif version == 'dag':
         print >> writer, 'SDEF ERG=0.0000000253 X=99.999 Y=99.999 Z=99.999 CELL=1'
@@ -178,7 +181,7 @@ def write_cubit_2(fname,geom,N,F,rho):
     print >> writer, 'move volume %u location x %11.8f y %11.8f z 100'     % (2,F/2,(100+F)/2)
     print >> writer, 'brick x %11.8f y %11.8f z 200'                       % (100-F,F)       # volume 3: bottom-right
     print >> writer, 'move volume %u location x %11.8f y %11.8f z 100'     % (3,(100+F)/2,F/2)
-    print >> writer, 'group "spec.reflect" add surf 5 6'                                     # make top abd right boundaries reflecting
+    print >> writer, 'group "spec.reflect" add surf 5 6'                                     # make top and right boundaries reflecting
     
     for j in range(1,N+1):
         print >> writer, 'brick x %11.8f y %11.8f z 200'                   % (j*F/N,F/N)     # volumes 4 to N+3: bricks left of the steps
@@ -420,7 +423,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
             write_setup(fname,version)                                          # Write script to run CUBIT and DAGMC pre-processing
             write_setup_master(fname,fid,max_concurrent)                        # Append instructions to setup file
 
-    write_data_2(fname,geom,N,F,rho,ctme,mfp_in)                                # Write MCNP data cards
+    write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards
 
     write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in)                     # Append instructions to local run file
     write_job(fname,version,geom,N,F,rho,ctme,mfp_in)                           # Write ACI job file
