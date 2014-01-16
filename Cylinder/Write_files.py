@@ -27,8 +27,8 @@ import time
 # Determine filename
 def determine_filename(version,H,D,mfp,tol):
     
-    H_str   = ('%4.0f' % (N  )).replace(' ','_')
-    D_str   = ('%4.0f' % (F  )).replace(' ','_')
+    H_str   = ('%4.0f' % (H  )).replace(' ','_')
+    D_str   = ('%4.0f' % (D  )).replace(' ','_')
     mfp_str = ('%6.2f' % (mfp)).replace(' ','_')
     tol_str = ('%5.0e' % (tol)).replace(' ','_')
     
@@ -41,7 +41,7 @@ def write_title(fname,H,D,mfp,tol):
     # Write title cards to the specified file
     writer = open(direc+fname+'.i','w')
     
-    print >> writer, 'Small geometric features test'
+    print >> writer, 'Faceting tolerance test'
     print >> writer, 'c    H = %.3f' % (H)                                      # cylinder height
     print >> writer, 'c    D = %.3f' % (D)                                      # cylinder diameter
     print >> writer, 'c  rho = %.8f' % (rho)                                    # mass density of deuterium in the cube
@@ -63,6 +63,8 @@ def write_cells(fname,H,D,rho,tol):
     writer = open(direc+fname+'.i','a')
     
     print >> writer, 'c CELL CARDS'
+    print >> writer, '1 %s -1' % (mat_str)
+    print >> writer, '2 0              1'
     print >> writer, ''
     
     writer.close()
@@ -74,6 +76,7 @@ def write_surfaces(fname,H,D,rho,tol):
     writer = open(direc+fname+'.i','a')
     
     print >> writer, 'c SURFACE CARDS'
+    print >> writer, '1 rcc 0 0 0   0 0 %.8f  %.8f' % (H,D/2)
     print >> writer, ''
     
     writer.close()
