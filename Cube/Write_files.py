@@ -334,7 +334,7 @@ def write_job_master(fname):
         print >> writer, '#!/bin/bash'
         print >> writer, ''
     
-    print >> writer, 'echo %s.sh'   % (fname)
+    print >> writer, 'echo %s.sh'       % (fname)
     print >> writer, 'sbatch %s.aci.sh' % (fname)                               # execute the job script
     
     writer.close()
