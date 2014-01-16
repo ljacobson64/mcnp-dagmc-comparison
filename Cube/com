@@ -1,4 +1,4 @@
-basis  1.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  1.0000E+00  0.0000E+00
-origin 50 50 50                                                                 
-extent 60                                                                     
-label 0 1                                                                       
+basis 1 0 0 0 1 0
+origin 50 50 100
+extent 60
+label 0 1
