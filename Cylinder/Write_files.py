@@ -27,7 +27,7 @@ import time
 # Determine filename
 def determine_filename(version,H,D,mfp,tol):
     
-    fname = 'zCyl_%s_%.0f_%.0f_%.2f_%.0e' % (version,H,D,mfp,tol)               # base filename (no extension)
+    fname = 'zCyl_%s_%.0f_%.0f_%.0e_%.0e' % (version,H,D,mfp,tol)               # base filename (no extension)
     return fname
 
 # Write title cards
