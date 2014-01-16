@@ -7,20 +7,21 @@ Author: Lucas Jacobson
 Advisors: P.P.H. Wilson, Andrew Davis
 
 The file "params.txt" should contain the following entries:
-Line 1: Directory. Must include final slash.
-Line 2: List of versions. "nat" represents native MCNP5 and "dag" represents DAG-MCNP5.
-Line 3: List of geometry configurations. "2s" represents two-dimensional steps with separate cell
+Line 1: Directory to place input files. Must include final slash.
+Line 2: Directory to place results files. Must include final slash.
+Line 3: List of versions. "nat" represents native MCNP5 and "dag" represents DAG-MCNP5.
+Line 4: List of geometry configurations. "2s" represents two-dimensional steps with separate cell
         definitions; "2j" represents two-dimensional steps with joined cell definitions. "3s" and
         "3j" may become options in the future.
-Line 4: List of values of N (integer from 1 to 40000). N is the number of steps in the geometry.
-Line 5: List of values of F (0.001 to 100). F is the portion of the geometry containing the steps.
+Line 5: List of values of N (integer from 1 to 40000). N is the number of steps in the geometry.
+Line 6: List of values of F (0.001 to 100). F is the portion of the geometry containing the steps.
         For example, an F of 0.001 would mean that all the steps would be condensed into a very
         small space in a corner, whereas an F of 100 would mean that the steps would comprise an
         entire square diagonal.
-Line 6: List of values of mfp (0 to 100). mfp is the number of mean-free paths of pure deuterium in
+Line 7: List of values of mfp (0 to 100). mfp is the number of mean-free paths of pure deuterium in
         one meter. The required density is obtained simply by multiplying mfp by 0.0078958.
-Line 7: Computer time in minutes.
-Line 8: If running in DAG-MCNP mode and mfp_in > 0, CUBIT and dagmc_preproc are not run. Rather, an
+Line 8: Computer time in minutes.
+Line 9: If running in DAG-MCNP mode and mfp_in > 0, CUBIT and dagmc_preproc are not run. Rather, an
         existing .h5m file with identical geometry but different density is used, and the only
         things changed are the density entries on the LCAD card.
 
@@ -344,13 +345,14 @@ params_str = reader.readlines()
 
 global direc
 direc    =                    params_str[0].split()[0 ]                         # directory to place files
-versions =                    params_str[1].split()[1:]                         # list of MCNP versions
-geoms    =                    params_str[2].split()[1:]                         # list of geometry configurations
-N_vals   = [  int(i) for i in params_str[3].split()[1:]]                        # list of values of N
-F_vals   = [float(i) for i in params_str[4].split()[1:]]                        # list of values of F
-mfps     = [float(i) for i in params_str[5].split()[1:]]                        # list of number of mean free paths in 1 m
-ctme     =  float(            params_str[6].split()[1 ])                        # computer time
-mfp_in   =  float(            params_str[7].split()[1 ])                        # mfp for pre-existing LCAD file
+resdir   =                    params_str[1].split()[0 ]                         # directory to place results
+versions =                    params_str[2].split()[1:]                         # list of MCNP versions
+geoms    =                    params_str[3].split()[1:]                         # list of geometry configurations
+N_vals   = [  int(i) for i in params_str[4].split()[1:]]                        # list of values of N
+F_vals   = [float(i) for i in params_str[5].split()[1:]]                        # list of values of F
+mfps     = [float(i) for i in params_str[6].split()[1:]]                        # list of number of mean free paths in 1 m
+ctme     =  float(            params_str[7].split()[1 ])                        # computer time
+mfp_in   =  float(            params_str[8].split()[1 ])                        # mfp for pre-existing LCAD file
 
 reader.close()
 

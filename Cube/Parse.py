@@ -52,7 +52,7 @@ def parse_output_file(fname,version,geom,N,F,mfp):
             ctm2 = -1
     
     # Write NPS to text file
-    writer = open('Cube_results.txt','a')
+    writer = open(resdir+'Cube_results.txt','a')
     
     if writer.tell() == 0:
         print >> writer, '|---------|------|-------|---------|--------|---------|---------|------------|'
@@ -70,19 +70,20 @@ reader = open('params.txt','r')
 params_str = reader.readlines()
 
 global direc
-direc      =                    params_str[0].split()[0 ]                        # directory to place files
-versions   =                    params_str[1].split()[1:]                        # list of MCNP versions
-geoms      =                    params_str[2].split()[1:]                        # list of geometry configurations
-N_vals     = [  int(i) for i in params_str[3].split()[1:]]                       # list of values of N
-F_vals     = [float(i) for i in params_str[4].split()[1:]]                       # list of values of F
-mfps       = [float(i) for i in params_str[5].split()[1:]]                       # list of number of mean free paths in 1 m
-ctme       =  float(            params_str[6].split()[1 ])                       # computer time
-mfp_in     =  float(            params_str[7].split()[1 ])                       # mfp for pre-existing LCAD file
+direc    =                    params_str[0].split()[0 ]                         # directory to place files
+resdir   =                    params_str[1].split()[0 ]                         # directory to place results
+versions =                    params_str[2].split()[1:]                         # list of MCNP versions
+geoms    =                    params_str[3].split()[1:]                         # list of geometry configurations
+N_vals   = [  int(i) for i in params_str[4].split()[1:]]                        # list of values of N
+F_vals   = [float(i) for i in params_str[5].split()[1:]]                        # list of values of F
+mfps     = [float(i) for i in params_str[6].split()[1:]]                        # list of number of mean free paths in 1 m
+ctme     =  float(            params_str[7].split()[1 ])                        # computer time
+mfp_in   =  float(            params_str[8].split()[1 ])                        # mfp for pre-existing LCAD file
 
 reader.close()
 
-if os.path.isfile('Cube_results.txt') == True:
-    os.remove('Cube_results.txt')
+if os.path.isfile(resdir+'Cube_results.txt') == True:
+    os.remove(resdir+'Cube_results.txt')
 
 # Parse output
 for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
@@ -99,6 +100,6 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     print fname
 
 # Display output in command window
-f = open('Cube_results.txt','r')
+f = open(resdir+'Cube_results.txt','r')
 print f.read()
 f.close()
