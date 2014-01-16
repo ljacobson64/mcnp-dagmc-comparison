@@ -133,6 +133,7 @@ def write_surfaces_2(fname,geom,N,F,rho):
 # Write data cards; native MCNP; 2 dimensions
 def write_data_nat_2(fname,geom,N,F,rho,ctme,mfp_in):
     
+    # Write data cards to the specified file
     writer = open(direc+fname+'.i','a')
     
     print >> writer, 'c DATA CARDS'
@@ -151,6 +152,7 @@ def write_data_nat_2(fname,geom,N,F,rho,ctme,mfp_in):
 # Write data cards; DAG-MCNP; 2 dimensions
 def write_data_dag_2(fname,geom,N,F,rho,ctme,mfp_in):
     
+    # Write data cards to the specified file
     writer = open(direc+fname+'.i','a')
     
     print >> writer, 'DATA CARDS'
@@ -299,7 +301,7 @@ def write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in):
 # Write ACI job script
 def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
     
-    time_runtpe = 1
+    time_extra = 1
     
     writer = open(direc+fname+'.aci.sh','w')
     
@@ -307,7 +309,7 @@ def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
     print >> writer, ''
     print >> writer, '#SBATCH --partition=univ'                                 # default "univ" if not specified
     
-    print >> writer, '#SBATCH --time=0-00:%u:00' % (time_runtpe+ctme)           # run time in days-hh:mm:ss
+    print >> writer, '#SBATCH --time=0-00:%u:00' % (time_extra+ctme)            # run time in days-hh:mm:ss
     print >> writer, '#SBATCH --ntasks=1'                                       # number of CPUs
     print >> writer, '#SBATCH --mem-per-cpu=2000'                               # RAM in MB (default 4GB, max 8GB)
     print >> writer, '#SBATCH --error=/home/ljjacobson/%s.err'  % (fname)       # location of error file
