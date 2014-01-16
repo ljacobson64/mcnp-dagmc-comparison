@@ -4,13 +4,13 @@ import os
 # Determine filename
 def determine_filename(version,geom,N,F,mfp):
     
-    fname = 'zCube_%s_%s_%u_%.0f_%.3f' % (version,geom,N,F,mfp)                 # base filename (no extension)
+    fname = 'zCube_%s_%s_%u_%.0f_%.2f' % (version,geom,N,F,mfp)                 # base filename (no extension)
     return fname
 
 # Parse output files for CTM and NPS
 def parse_output_file(fname,version,geom,N,F,mfp):
     
-    fname_io = '%s.io' % (fname)
+    fname_io = '%s.io'   % (fname)
     fname_out = '%s.out' % (fname)
     
     # Make sure output file is valid
@@ -55,11 +55,11 @@ def parse_output_file(fname,version,geom,N,F,mfp):
     writer = open('Cube_results.txt','a')
     
     if writer.tell() == 0:
-        print >> writer, '|---------|------|-------|---------|----------|--------|--------|-----------|'
-        print >> writer, '| version | geom |   N   |    F    |   mfp    |  ctm1  |  ctm2  |    nps    |'
-        print >> writer, '|---------|------|-------|---------|----------|--------|--------|-----------|'
+        print >> writer, '|---------|------|-------|---------|--------|---------|---------|------------|'
+        print >> writer, '| version | geom |   N   |    F    |  mfp   |  ctm1   |  ctm2   |    nps     |'
+        print >> writer, '|---------|------|-------|---------|--------|---------|---------|------------|'
         
-    print >> writer, '|   %s   |  %s  | %5u | %7.3f | %8.3f | %6.2f | %6.2f | %9u |' % (version,geom,N,F,mfp,ctm1,ctm2,nps)
+    print >> writer, '|   %s   |  %s  | %5u | %7.3f | %6.2f | %7.2f | %7.2f | %10u |' % (version,geom,N,F,mfp,ctm1,ctm2,nps)
     
     writer.close()
 
