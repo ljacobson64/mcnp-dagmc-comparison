@@ -240,7 +240,7 @@ def modify_lcad(fname_in,fname_out,rho):
     reader.close()
     writer.close()
 
-# Write script to create runtpe files for native runs and CUBIT and DAGMC-preprocessing scripts for DAG runs
+# Write script to create runtpe files for native runs and do CUBIT and DAGMC-preprocessing and create runtpe files for DAG runs
 def write_setup(fname,version):
     
     writer = open(direc+fname+'.setup.sh','w')
@@ -248,10 +248,11 @@ def write_setup(fname,version):
     print >> writer, '#!/bin/bash'
     print >> writer, ''
     if version == 'nat':
-        print >> writer, 'mcnp5 ix n=%s.i o=%s.setup.io'                               % (fname,fname)
+        print >> writer, 'mcnp5 ix n=%s.i o=%s.setup.io'                                    % (fname,fname)
     elif version == 'dag':
-        print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou' % (fname)
-        print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                    % (fname,fname)
+        print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou'      % (fname)
+        print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                         % (fname,fname)
+        print >> writer, 'mcnp5 ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname,fname,fname,fname)
         
     writer.close()
 
@@ -273,7 +274,7 @@ def write_setup_master(fname,fid,max_concurrent):
     writer.close()
 
 # Write local run script
-def write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in):
+def write_local_run(fname):
     
     writer = open(direc+'local_runs.sh','a')
     
@@ -281,19 +282,13 @@ def write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in):
         print >> writer, '#!/bin/bash'
         print >> writer, ''
     
-    print >> writer, 'echo %s'                                                % (fname)
-    if version == 'nat':
-        print >> writer, 'mcnp5 c i=cont.i o=%s.io r=%s.ir > %s.out'          % (fname,fname,fname)
-    elif version == 'dag' and mfp_in > 0:
-        fname_in = determine_filename(version,geom,N,F,mfp_in)
-        print >> writer, 'mcnp5 n=%s.i g=%s.h5m l=%s.lcad f=%s.fcad > %s.out' % (fname,fname_in,fname,fname,fname)
-    elif version == 'dag' and mfp_in <= 0:
-        print >> writer, 'mcnp5 n=%s.i g=%s.h5m l=%s.lcad f=%s.fcad > %s.out' % (fname,fname,fname,fname,fname)
-    
+    print >> writer, 'echo %s'                                                                       % (fname)
+    print >> writer, 'mcnp5 c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad > %s.out' % (fname,fname,fname,fname,fname,fname)
+
     writer.close()
 
 # Write ACI job script
-def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
+def write_job(fname):
     
     time_extra = 1
     
@@ -309,13 +304,7 @@ def write_job(fname,version,geom,N,F,rho,ctme,mfp_in):
     print >> writer, '#SBATCH --error=/home/ljjacobson/%s.err'  % (fname)       # location of error file
     print >> writer, '#SBATCH --output=/home/ljjacobson/%s.out' % (fname)       # location of command output file
     print >> writer, ''
-    if version == 'nat':                                                      # run MCNP
-        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i o=%s.io r=%s.ir'          % (fname,fname)
-    elif version == 'dag' and mfp_in > 0:
-        fname_in = determine_filename(version,geom,N,F,mfp_in)
-        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi n=%s.i g=%s.h5m l=%s.lcad f=%s.fcad' % (fname,fname_in,fname,fname)
-    elif version == 'dag' and mfp_in <= 0:
-        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi n=%s.i g=%s.h5m l=%s.lcad f=%s.fcad' % (fname,fname,fname,fname)
+    print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad' % (fname,fname,fname,fname,fname)
     print >> writer, ''
     writer.close()
     
@@ -424,13 +413,13 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
             modify_lcad(fname_in,fname,rho)
         else:
             write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions
-            write_setup(fname,version)                                          # Write script to run CUBIT and DAGMC pre-processing
+            write_setup(fname,version)                                          # Write script to run CUBIT and DAGMC pre-processing and create runtpe file
             write_setup_master(fname,fid,max_concurrent)                        # Append instructions to setup file
 
     write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards
 
-    write_local_run(fname,version,geom,N,F,rho,ctme,mfp_in)                     # Append instructions to local run file
-    write_job(fname,version,geom,N,F,rho,ctme,mfp_in)                           # Write ACI job file
+    write_local_run(fname)                                                      # Append instructions to local run file
+    write_job(fname)                                                            # Write ACI job file
     write_job_master(fname)                                                     # Append instructions to master job file
     
 # Write continue run script
