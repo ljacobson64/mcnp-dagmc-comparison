@@ -166,6 +166,7 @@ def write_continue(ctme):
     
     print >> writer, 'CONTINUE'
     print >> writer, 'CTME %.8f' % (ctme)
+    print >> writer, 'PRDMP 1E12 1E12 0 100 1E12'
     
     writer.close()
 
@@ -248,11 +249,11 @@ def write_setup(fname,version):
     print >> writer, '#!/bin/bash'
     print >> writer, ''
     if version == 'nat':
-        print >> writer, 'mcnp5 ix n=%s.i o=%s.setup.io'                                    % (fname,fname)
+        print >> writer, 'mcnp5.mpi ix n=%s.i o=%s.setup.io'                                    % (fname,fname)
     elif version == 'dag':
-        print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou'      % (fname)
-        print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                         % (fname,fname)
-        print >> writer, 'mcnp5 ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname,fname,fname,fname)
+        print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou'          % (fname)
+        print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                             % (fname,fname)
+        print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname,fname,fname,fname)
         
     writer.close()
 
@@ -273,8 +274,9 @@ def write_setup_master(fname,fid,max_concurrent):
     
     writer.close()
 
+
 # Write local run script
-def write_local_run(fname):
+def write_local_run(fname,version):
     
     writer = open(direc+'local_runs.sh','a')
     
@@ -282,13 +284,16 @@ def write_local_run(fname):
         print >> writer, '#!/bin/bash'
         print >> writer, ''
     
-    print >> writer, 'echo %s'                                                                       % (fname)
-    print >> writer, 'mcnp5 c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad > %s.out' % (fname,fname,fname,fname,fname,fname)
+    print >> writer, 'echo %s'                                                                                             % (fname)
+    if version == 'nat':
+        print >> writer, 'mpirun -np 22 mcnp5.mpi c i=cont.i o=%s.io r=%s.ir > %s.out'                                     % (fname,fname,fname)
+    elif version == 'dag':
+        print >> writer, 'mpirun -np 22 mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad > %s.out' % (fname,fname,fname,fname,fname,fname)
 
     writer.close()
 
 # Write ACI job script
-def write_job(fname):
+def write_job(fname,version):
     
     time_extra = 1
     
@@ -299,12 +304,15 @@ def write_job(fname):
     print >> writer, '#SBATCH --partition=univ'                                 # default "univ" if not specified
     
     print >> writer, '#SBATCH --time=0-00:%u:00' % (time_extra+ctme)            # run time in days-hh:mm:ss
-    print >> writer, '#SBATCH --ntasks=1'                                       # number of CPUs
-    print >> writer, '#SBATCH --mem-per-cpu=2000'                               # RAM in MB (default 4GB, max 8GB)
+    print >> writer, '#SBATCH --ntasks=16'                                      # number of CPUs
+    print >> writer, '#SBATCH --mem-per-cpu=1024'                               # RAM in MB (default 4GB, max 8GB)
     print >> writer, '#SBATCH --error=/home/ljjacobson/%s.err'  % (fname)       # location of error file
     print >> writer, '#SBATCH --output=/home/ljjacobson/%s.out' % (fname)       # location of command output file
     print >> writer, ''
-    print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad' % (fname,fname,fname,fname,fname)
+    if version == 'nat':
+        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i o=%s.io r=%s.ir' % (fname,fname)
+    elif version == 'dag':
+        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad' % (fname,fname,fname,fname,fname)
     print >> writer, ''
     writer.close()
     
@@ -409,7 +417,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     elif version == 'dag' and (geom == '2s' or geom == '2j'):                   # DAG-MCNP, 2 dimensions
         
         if mfp_in > 0:                                                          # Use an existing LCAD file with a different rho
-            fname_in = 'zCube_%s_%s_%u_%.0f_%.2f' % (version,geom,N,F,mfp_in)
+            fname_in = determine_filename(version,geom,N,F,mfp_in)
             modify_lcad(fname_in,fname,rho)
         else:
             write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions
@@ -418,8 +426,8 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
 
     write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards
 
-    write_local_run(fname)                                                      # Append instructions to local run file
-    write_job(fname)                                                            # Write ACI job file
+    write_local_run(fname,version)                                              # Append instructions to local run file
+    write_job(fname,version)                                                    # Write ACI job file
     write_job_master(fname)                                                     # Append instructions to master job file
     
 # Write continue run script
