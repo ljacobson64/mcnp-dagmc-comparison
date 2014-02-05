@@ -163,7 +163,7 @@ def write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in):
 # Write continue run script
 def write_continue(ctme):
     
-    writer = open(direc+'cont.i','a')
+    writer = open(direc+'cont.i','w')
     
     print >> writer, 'CONTINUE'
     print >> writer, 'CTME %.8f' % (ctme)
@@ -243,7 +243,7 @@ def modify_lcad(fname_in,fname_out,rho):
     writer.close()
 
 # Write script to create runtpe files for native runs and do CUBIT and DAGMC-preprocessing and create runtpe files for DAG runs
-def write_setup(fname,version):
+def write_setup(fname,fname_in,version):
     
     writer = open(direc+fname+'.setup.sh','w')
     
@@ -252,16 +252,23 @@ def write_setup(fname,version):
     if version == 'nat':
         print >> writer, 'mcnp5.mpi ix n=%s.i o=%s.setup.io'                                    % (fname,fname)
     elif version == 'dag':
-        print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou'          % (fname)
-        print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                             % (fname,fname)
-        print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname,fname,fname,fname)
+        if fname == fname_in:
+            print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou'          % (fname)
+            print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                             % (fname,fname)
+            print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname,fname,fname,fname)
+        else:
+            print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname_in,fname,fname,fname)
+    print >> writer, 'cp %s.ir %s.setup.ir'                                                         % (fname,fname)
         
     writer.close()
 
 # Write script to run all setup scripts
-def write_setup_master(fname,fid,max_concurrent):
+def write_setup_master(fname,fname_in,fid,max_concurrent):
     
-    writer = open(direc+'setup_files.sh','a')
+    if fname == fname_in:
+        writer = open(direc+'setup_files.sh','a')
+    else:
+        writer = open(direc+'setup_files_2.sh','a')
     
     if writer.tell() == 0:
         print >> writer, '#!/bin/bash'
@@ -401,6 +408,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
         
     fname = determine_filename(version,geom,N,F,mfp)                            # base filename (no extension)
     print fname
+    fname_in = determine_filename(version,geom,N,F,mfp)
     
     # Write input files
     if version == 'nat' and (geom == '2s' or geom == '2j'):                     # Native MCNP, 2 dimensions
@@ -412,9 +420,6 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
             write_cells_2j(fname,geom,N,F,rho)                                  # Append cell cards; joined cells
         write_surfaces_2(fname,geom,N,F,rho)                                    # Append surface cards
         
-        write_setup(fname,version)                                              # Write script to create runtpe file
-        write_setup_master(fname,fid,max_concurrent)                            # Append instructions to setup file
-        
     elif version == 'dag' and (geom == '2s' or geom == '2j'):                   # DAG-MCNP, 2 dimensions
         
         if mfp_in > 0:                                                          # Use an existing LCAD file with a different rho
@@ -422,11 +427,11 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
             modify_lcad(fname_in,fname,rho)
         else:
             write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions
-            write_setup(fname,version)                                          # Write script to run CUBIT and DAGMC pre-processing and create runtpe file
-            write_setup_master(fname,fid,max_concurrent)                        # Append instructions to setup file
-
+        
     write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards
 
+    write_setup(fname,fname_in,version)                                         # Write script to run CUBIT and DAGMC pre-processing and/or create runtpe file
+    write_setup_master(fname,fname_in,fid,max_concurrent)                       # Append instructions to setup file
     write_local_run(fname,version)                                              # Append instructions to local run file
     write_job(fname,version)                                                    # Write ACI job file
     write_job_master(fname)                                                     # Append instructions to master job file

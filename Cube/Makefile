@@ -16,7 +16,7 @@ parse:
 	python Parse.py
 
 clean:
-	rm -f $(DIR)zCube_* $(DIR)cont.i $(DIR)setup_files.sh
+	rm -f $(DIR)zCube_* $(DIR)cont.i $(DIR)setup_file*.sh
 	rm -f $(DIR)submit_jobs.sh $(DIR)local_runs.sh
 	rm -f $(DIR)cubit* $(DIR)history*
 	rm -f $(DIR)out* $(DIR)runtp* $(DIR)comou* 
