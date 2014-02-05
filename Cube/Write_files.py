@@ -153,6 +153,7 @@ def write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in):
         print >> writer, 'SDEF ERG=0.0000000253 X=99.999 Y=99.999 Z=99.999'
     elif version == 'dag':
         print >> writer, 'SDEF ERG=0.0000000253 X=99.999 Y=99.999 Z=99.999 CELL=1'
+        print >> writer, 'DAGMC CHECK_SRC_CELL=OFF'                             # do not check source cell
     print >> writer, 'M1 1002.70C 1'                                            # material 1 is pure deuterium
     print >> writer, 'CTME %.8f' % (ctme)                                       # do not run simulation; only create runtpe file
     print >> writer, ''
