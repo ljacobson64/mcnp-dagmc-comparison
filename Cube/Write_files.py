@@ -4,7 +4,7 @@ Automated MCNP5 Input File Generator
 
 Author: Lucas Jacobson
 
-Advisors: P.P.H. Wilson, Andrew Davis
+Advisers: P.P.H. Wilson, Andrew Davis
 
 The file "params.txt" should contain the following entries:
 Line 1: Directory to place input files. Must include final slash.
@@ -89,7 +89,7 @@ def write_cells_2s(fname,geom,N,F,rho):
 
 # Write cell cards; 2 dimensions; joined cells
 def write_cells_2j(fname,geom,N,F,rho):
-	
+    
     # Determine material specification syntax
     if rho == 0:
         mat_str = '0            '                                               # if rho=0, set material to void
@@ -221,10 +221,15 @@ def modify_lcad(fname_in,fname_out,rho):
     
     reader = open(direc+fname_in+'.lcad','r')                                   # read from the input file
     writer = open(direc+fname_out+'.lcad','w')                                  # write to the output file
-
+    
     lines = reader.readlines()
-    in_str = lines[0].split()[2]                                                # input rho string
-    out_str   = '-%10.8f' % (rho)                                               # output rho string
+    
+    if rho == 0:
+        in_str = ' '.join(lines[0].split()[1:3])                                # input rho string
+        out_str = str(0)                                                        # output rho string
+    else:
+        in_str = lines[0].split()[2]                                            # input rho string
+        out_str = '-%10.8f' % (rho)                                             # output rho string
     
     line_ind = 0
     for line in lines:                                                          # replace original rho with new rho
@@ -258,6 +263,7 @@ def write_setup(fname,fname_in,version):
             print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname,fname,fname,fname)
         else:
             print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname_in,fname,fname,fname)
+            print >> writer, 'rm %s.setup.fcad'                                                     % (fname)
     print >> writer, 'cp %s.ir %s.setup.ir'                                                         % (fname,fname)
         
     writer.close()
@@ -282,9 +288,8 @@ def write_setup_master(fname,fname_in,fid,max_concurrent):
     
     writer.close()
 
-
 # Write local run script
-def write_local_run(fname,version):
+def write_local_run(fname,fname_in,version):
     
     writer = open(direc+'local_runs.sh','a')
     
@@ -292,16 +297,19 @@ def write_local_run(fname,version):
         print >> writer, '#!/bin/bash'
         print >> writer, ''
     
-    print >> writer, 'echo %s'                                                                                             % (fname)
+    print >> writer, 'echo %s'                                                                                                 % (fname)
     if version == 'nat':
-        print >> writer, 'mpirun -np 22 mcnp5.mpi c i=cont.i o=%s.io r=%s.ir > %s.out'                                     % (fname,fname,fname)
+        print >> writer, 'mpirun -np 2 mcnp5.mpi c i=cont.i o=%s.io r=%s.ir > %s.out'                                         % (fname,fname,fname)
     elif version == 'dag':
-        print >> writer, 'mpirun -np 22 mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad > %s.out' % (fname,fname,fname,fname,fname,fname)
+        if fname == fname_in:
+            print >> writer, 'mpirun -np 2 mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad > %s.out' % (fname,fname,fname,fname,fname,fname)
+        else:
+            print >> writer, 'mpirun -np 2 mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad > %s.out' % (fname_in,fname,fname,fname,fname,fname)
 
     writer.close()
 
 # Write ACI job script
-def write_job(fname,version):
+def write_job(fname,fname_in,version):
     
     time_extra = 1
     
@@ -320,7 +328,10 @@ def write_job(fname,version):
     if version == 'nat':
         print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i o=%s.io r=%s.ir' % (fname,fname)
     elif version == 'dag':
-        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad' % (fname,fname,fname,fname,fname)
+        if fname == fname_in:
+            print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad' % (fname,fname,fname,fname,fname)
+        else:
+            print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad' % (fname_in,fname,fname,fname,fname)
     print >> writer, ''
     writer.close()
     
@@ -432,8 +443,8 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
 
     write_setup(fname,fname_in,version)                                         # Write script to run CUBIT and DAGMC pre-processing and/or create runtpe file
     write_setup_master(fname,fname_in,fid,max_concurrent)                       # Append instructions to setup file
-    write_local_run(fname,version)                                              # Append instructions to local run file
-    write_job(fname,version)                                                    # Write ACI job file
+    write_local_run(fname,fname_in,version)                                     # Append instructions to local run file
+    write_job(fname,fname_in,version)                                           # Write ACI job file
     write_job_master(fname)                                                     # Append instructions to master job file
     
 # Write continue run script
