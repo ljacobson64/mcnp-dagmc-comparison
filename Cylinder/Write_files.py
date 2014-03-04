@@ -30,7 +30,7 @@ def determine_filename(version,H,D,mfp,tol):
     H_str   = ('%4.0f' % (H  )).replace(' ','_')
     D_str   = ('%4.0f' % (D  )).replace(' ','_')
     mfp_str = ('%6.2f' % (mfp)).replace(' ','_')
-    tol_str = ('%5.0e' % (tol)).replace(' ','_')
+    tol_str = ('%6.2f' % (tol)).replace(' ','_')
     
     fname = 'zCyl_%s_%s_%s_%s_%s' % (version,H_str,D_str,mfp_str,tol_str)       # base filename (no extension)
     return fname
@@ -144,7 +144,8 @@ def write_setup(fname,version,H,D,rho,tol,ctme):
         print >> writer, 'mcnp5 ix n=%s.i o=%s.setup.io'                               % (fname,fname)
     elif version == 'dag':
         print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou' % (fname)
-        print >> writer, 'dagmc_preproc -f %.2e %s.sat -o %s.h5m'                      % (tol,fname,fname)
+        print >> writer, 'dagmc_preproc -l %.8e %s.sat -o %s.h5m'                      % (tol,fname,fname)
+        # print >> writer, 'mbconvert %s.h5m %s.stl'                                     % (fname,fname)
         
     writer.close()
 
@@ -185,7 +186,7 @@ def write_local_run(fname,version,H,D,rho,tol,ctme):
 # Write ACI job script
 def write_job(fname,version,H,D,rho,tol,ctme):
     
-    time_runtpe = 1
+    time_extra = 10
     
     writer = open(direc+fname+'.aci.sh','w')
     
@@ -193,16 +194,16 @@ def write_job(fname,version,H,D,rho,tol,ctme):
     print >> writer, ''
     print >> writer, '#SBATCH --partition=univ'                                 # default "univ" if not specified
     
-    print >> writer, '#SBATCH --time=0-00:%u:00' % (time_runtpe+ctme)           # run time in days-hh:mm:ss
-    print >> writer, '#SBATCH --ntasks=1'                                       # number of CPUs
-    print >> writer, '#SBATCH --mem-per-cpu=2000'                               # RAM in MB (default 4GB, max 8GB)
+    print >> writer, '#SBATCH --time=0-00:%u:00' % (time_extra+ctme)            # run time in days-hh:mm:ss
+    print >> writer, '#SBATCH --ntasks=16'                                      # number of CPUs
+    print >> writer, '#SBATCH --mem-per-cpu=1024'                               # RAM in MB (default 4GB, max 8GB)
     print >> writer, '#SBATCH --error=/home/ljjacobson/%s.err'  % (fname)       # location of error file
     print >> writer, '#SBATCH --output=/home/ljjacobson/%s.out' % (fname)       # location of command output file
     print >> writer, ''
-    if   version == 'nat':                                                      # run MCNP
-        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i o=%s.io r=%s.ir'          % (fname,fname)
+    if version == 'nat':
+        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i o=%s.io r=%s.ir' % (fname,fname)
     elif version == 'dag':
-        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi n=%s.i g=%s.h5m l=%s.lcad f=%s.fcad' % (fname,fname,fname,fname)
+        print >> writer, 'srun /home/adavis23/dagmc/mcnp5v16_dag/bin/mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad' % (fname,fname,fname,fname,fname)
     print >> writer, ''
     writer.close()
     
