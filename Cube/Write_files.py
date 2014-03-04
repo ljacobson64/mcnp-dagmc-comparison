@@ -33,13 +33,14 @@ import math
 import time
 
 # Determine filename
-def determine_filename(version,geom,N,F,mfp):
+def determine_filename(version,geom,N,F,mfp,tol):
     
     N_str   = ('%5u'   % (N  )).replace(' ','_')
     F_str   = ('%2.0f' % (F  )).replace(' ','_')
     mfp_str = ('%6.2f' % (mfp)).replace(' ','_')
+    tol_str = ('%3.0f' % (tol)).replace(' ','_')
     
-    fname = 'zCube_%s_%s_%s_%s_%s' % (version,geom,N_str,F_str,mfp_str)         # base filename (no extension)
+    fname = 'zCube_%s_%s_%s_%s_%s_%s' % (version,geom,N_str,F_str,mfp_str,tol_str) # base filename (no extension)
     return fname
 
 # Write title cards
@@ -166,7 +167,7 @@ def write_continue(ctme):
     writer = open(direc+'cont.i','w')
     
     print >> writer, 'CONTINUE'
-    print >> writer, 'CTME %.8f' % (ctme)
+    print >> writer, 'CTME %.8f' % (ctme*16)
     print >> writer, 'PRDMP 1E12 1E12 0 100 1E12'
     
     writer.close()
@@ -248,7 +249,7 @@ def modify_lcad(fname_in,fname_out,rho):
     writer.close()
 
 # Write script to create runtpe files for native runs and do CUBIT and DAGMC-preprocessing and create runtpe files for DAG runs
-def write_setup(fname,fname_in,version):
+def write_setup(fname,fname_in,version,toltype,tol):
     
     writer = open(direc+fname+'.setup.sh','w')
     
@@ -259,7 +260,7 @@ def write_setup(fname,fname_in,version):
     elif version == 'dag':
         if fname == fname_in:
             print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou'          % (fname)
-            print >> writer, 'dagmc_preproc -f 1.0e-4 %s.sat -o %s.h5m'                             % (fname,fname)
+            print >> writer, 'dagmc_preproc -%s %.2e %s.sat -o %s.h5m'                              % (toltype,tol,fname,fname)
             print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname,fname,fname,fname)
         else:
             print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname_in,fname,fname,fname)
@@ -311,7 +312,7 @@ def write_local_run(fname,fname_in,version):
 # Write ACI job script
 def write_job(fname,fname_in,version):
     
-    time_extra = 1
+    time_extra = 10
     
     writer = open(direc+fname+'.aci.sh','w')
     
@@ -365,6 +366,8 @@ F_vals   = [float(i) for i in params_str[5].split()[1:]]                        
 mfps     = [float(i) for i in params_str[6].split()[1:]]                        # list of number of mean free paths in 1 m
 ctme     =  float(            params_str[7].split()[1 ])                        # computer time
 mfp_in   =  float(            params_str[8].split()[1 ])                        # mfp for pre-existing LCAD file
+toltype  =                    params_str[9].split()[1 ]                         # type of faceting tolerance to use for DAG
+tols     = [float(i) for i in params_str[9].split()[2:]]                        # faceting tolerance to use for DAG
 
 reader.close()
 
@@ -378,7 +381,7 @@ max_F        =     99.9
 fid = 0
 
 # Write input files and job scripts
-for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
+for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps,tols)):
     
     fid = fid+1
     
@@ -387,6 +390,7 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     N       = params[2]                                                         # loop for all values of N
     F       = params[3]                                                         # loop for all values of F
     mfp     = params[4]                                                         # loop for all values of mfp
+    tol     = params[5]                                                         # loop for all values of tol
     
     # Calculate mass density of deuterium from input number of mean free paths in 1 meter
     # Setting the mean free path to 1 meter results in a density of 0.0078958 g/cm^3
@@ -413,13 +417,15 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
         continue
 
     if version == 'nat':                                                        # maximum number of setup jobs running at once
-        max_concurrent = len(mfps)
-    elif version == 'dag':
+        max_concurrent = len(mfps)*2
+    elif (version == 'dag') and (mfp_in == 0):
         max_concurrent = len(F_vals)
+    elif (version == 'dag') and (mfp_in > 0):
+        max_concurrent = len(mfps)*2
         
-    fname = determine_filename(version,geom,N,F,mfp)                            # base filename (no extension)
+    fname = determine_filename(version,geom,N,F,mfp,tol)                        # base filename (no extension)
     print fname
-    fname_in = determine_filename(version,geom,N,F,mfp)
+    fname_in = determine_filename(version,geom,N,F,mfp,tol)
     
     # Write input files
     if version == 'nat' and (geom == '2s' or geom == '2j'):                     # Native MCNP, 2 dimensions
@@ -434,14 +440,14 @@ for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps)):
     elif version == 'dag' and (geom == '2s' or geom == '2j'):                   # DAG-MCNP, 2 dimensions
         
         if mfp_in > 0:                                                          # Use an existing LCAD file with a different rho
-            fname_in = determine_filename(version,geom,N,F,mfp_in)
-            modify_lcad(fname_in,fname,rho)
-        else:
-            write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions
+            fname_in = determine_filename(version,geom,N,F,mfp_in,tol)
+            #modify_lcad(fname_in,fname,rho)
+        #else:
+            #write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions
         
     write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards
-
-    write_setup(fname,fname_in,version)                                         # Write script to run CUBIT and DAGMC pre-processing and/or create runtpe file
+    
+    write_setup(fname,fname_in,version,toltype,tol)                             # Write script to run CUBIT and DAGMC pre-processing and/or create runtpe file
     write_setup_master(fname,fname_in,fid,max_concurrent)                       # Append instructions to setup file
     write_local_run(fname,fname_in,version)                                     # Append instructions to local run file
     write_job(fname,fname_in,version)                                           # Write ACI job file
