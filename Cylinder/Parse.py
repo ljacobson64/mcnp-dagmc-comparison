@@ -57,7 +57,7 @@ def parse_output_file(fname,version,H,D,mfp,tol):
             ctm2 = -1
     
     # Write NPS to text file
-    writer = open(resdir+'Cube_results.txt','a')
+    writer = open(resdir+'Cyl_results.txt','a')
     
     if writer.tell() == 0:
         print >> writer, '|---------|-------|-------|-------|---------|---------|---------|-------------|'
@@ -86,8 +86,8 @@ ctme     =  float(            params_str[7].split()[1 ])                        
 
 reader.close()
 
-if os.path.isfile(resdir+'Cube_results.txt') == True:
-    os.remove(resdir+'Cube_results.txt')
+if os.path.isfile(resdir+'Cyl_results.txt') == True:
+    os.remove(resdir+'Cyl_results.txt')
 
 # Parse output
 for params in list(itertools.product(versions,H_vals,D_vals,mfps,tols)):
@@ -104,6 +104,6 @@ for params in list(itertools.product(versions,H_vals,D_vals,mfps,tols)):
     print fname
 
 # Display output in command window
-f = open(resdir+'Cube_results.txt','r')
+f = open(resdir+'Cyl_results.txt','r')
 print f.read()
 f.close()
