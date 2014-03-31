@@ -105,7 +105,8 @@ def write_continue(ctme):
     writer = open(direc+'cont.i','a')
     
     print >> writer, 'CONTINUE'
-    print >> writer, 'CTME %.8f' % (ctme)
+    print >> writer, 'CTME %.8f' % (ctme*16)
+    print >> writer, 'PRDMP 1E12 1E12 0 100 1E12'
     
     writer.close()
 
@@ -141,11 +142,12 @@ def write_setup(fname,version,H,D,rho,tol,ctme):
     print >> writer, '#!/bin/bash'
     print >> writer, ''
     if version == 'nat':
-        print >> writer, 'mcnp5 ix n=%s.i o=%s.setup.io'                               % (fname,fname)
+        print >> writer, 'mcnp5.mpi ix n=%s.i o=%s.setup.io'                                    % (fname,fname)
     elif version == 'dag':
-        print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou' % (fname)
-        print >> writer, 'dagmc_preproc -l %.8e %s.sat -o %s.h5m'                      % (tol,fname,fname)
-        # print >> writer, 'mbconvert %s.h5m %s.stl'                                     % (fname,fname)
+        print >> writer, 'cubit -batch -nographics -nojournal -information=off %s.jou'          % (fname)
+        print >> writer, 'dagmc_preproc -l %.8e %s.sat -o %s.h5m'                               % (tol,fname,fname)
+        print >> writer, 'mcnp5.mpi ix n=%s.i g=%s.h5m o=%s.setup.io l=%s.lcad f=%s.setup.fcad' % (fname,fname,fname,fname,fname)
+        # print >> writer, 'mbconvert %s.h5m %s.stl'                                              % (fname,fname)
         
     writer.close()
 
@@ -177,9 +179,9 @@ def write_local_run(fname,version,H,D,rho,tol,ctme):
     
     print >> writer, 'echo %s'                                                % (fname)
     if   version == 'nat':
-        print >> writer, 'mcnp5 c i=cont.i o=%s.io r=%s.ir > %s.out'          % (fname,fname,fname)
+        print >> writer, 'mpirun -np 2 mcnp5.mpi c i=cont.i o=%s.io r=%s.ir > %s.out' % (fname,fname,fname)
     elif version == 'dag':
-        print >> writer, 'mcnp5 n=%s.i g=%s.h5m l=%s.lcad f=%s.fcad > %s.out' % (fname,fname,fname,fname,fname)
+        print >> writer, 'mpirun -np 2 mcnp5.mpi c i=cont.i g=%s.setup.fcad o=%s.io r=%s.ir l=%s.lcad f=%s.fcad > %s.out' % (fname,fname,fname,fname,fname,fname)
     
     writer.close()
 
@@ -192,7 +194,10 @@ def write_job(fname,version,H,D,rho,tol,ctme):
     
     print >> writer, '#!/bin/bash'
     print >> writer, ''
-    print >> writer, '#SBATCH --partition=univ'                                 # default "univ" if not specified
+    if time_extra+ctme <= 60:
+        print >> writer, '#SBATCH --partition=pre'
+    else:
+        print >> writer, '#SBATCH --partition=univ'
     
     print >> writer, '#SBATCH --time=0-00:%u:00' % (time_extra+ctme)            # run time in days-hh:mm:ss
     print >> writer, '#SBATCH --ntasks=16'                                      # number of CPUs
