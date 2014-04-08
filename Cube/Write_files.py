@@ -42,7 +42,7 @@ import math
 import time
 
 
-# Determine filename
+# Determine base filename (no extensions)
 def determine_filename(version,geom,N,F,mfp,tol):
     
     N_str   = ('%5u'   % (N  )).replace(' ','_')
@@ -270,7 +270,7 @@ def write_continue(ctme):
     writer.close()
     
     
-# Write CUBIT commands; 2 dimensions
+# Write CUBIT instructions; 2 dimensions
 def write_cubit_2(fname,geom,N,F,rho):
     
     # Write CUBIT commands to the specified file
@@ -361,7 +361,7 @@ def write_cubit_2(fname,geom,N,F,rho):
     writer.close()
     
     
-# Modify LCAD files to change density
+# Modify LCAD file to change density
 def modify_lcad(fname_in,fname_out,rho):
     
     # Read from the input LCAD file and write to the output file
@@ -529,7 +529,7 @@ def write_local_run(fname,fname_in,version):
     
     
 # Write ACI job script
-def write_job(fname,fname_in,version):
+def write_job(fname,fname_in,version,ctme):
     
     # Extra time to add to the ACI runs (in minutes)
     time_extra = 10
@@ -610,57 +610,74 @@ def write_job_master(fname):
     
     
 # MAIN SCRIPT
-def main()
+def main():
     
     # Open file containing parameters to vary
     reader = open('params.txt','r')
     params_str = reader.readlines()
-
+    
+    # Read parameters from input file
+    # direc:    directory to place files (working directory)
+    # resdir:   directory to place results files
+    # versions: list of MCNP versions ("nat" or "dag")
+    # geoms:    list of geometry configurations ("2s" or "2j")
+    # N_vals:   list of values of N
+    # F_vals:   list of values of F
+    # mfps:     list of number of mean free paths in 1 meter
+    # ctme:     computer time (wall clock)
+    # mfp_in:   mfp for pre-existing LCAD file
+    # toltype:  type of faceting tolerance to use for DAG
+    # tols:     list of faceting tolerances to use for DAG
     global direc
-    direc    =                    params_str[0].split()[0 ]  # directory to place files
-    resdir   =                    params_str[1].split()[0 ]  # directory to place results
-    versions =                    params_str[2].split()[1:]  # list of MCNP versions
-    geoms    =                    params_str[3].split()[1:]  # list of geometry configurations
-    N_vals   = [  int(i) for i in params_str[4].split()[1:]] # list of values of N
-    F_vals   = [float(i) for i in params_str[5].split()[1:]] # list of values of F
-    mfps     = [float(i) for i in params_str[6].split()[1:]] # list of number of mean free paths in 1 m
-    ctme     =  float(            params_str[7].split()[1 ]) # computer time
-    mfp_in   =  float(            params_str[8].split()[1 ]) # mfp for pre-existing LCAD file
-    toltype  =                    params_str[9].split()[1 ]  # type of faceting tolerance to use for DAG
-    tols     = [float(i) for i in params_str[9].split()[2:]] # list of faceting tolerances to use for DAG
-
+    direc    =                    params_str[0].split()[0 ]
+    resdir   =                    params_str[1].split()[0 ]
+    versions =                    params_str[2].split()[1:]
+    geoms    =                    params_str[3].split()[1:]
+    N_vals   = [  int(i) for i in params_str[4].split()[1:]]
+    F_vals   = [float(i) for i in params_str[5].split()[1:]]
+    mfps     = [float(i) for i in params_str[6].split()[1:]]
+    ctme     =  float(            params_str[7].split()[1 ])
+    mfp_in   =  float(            params_str[8].split()[1 ])
+    toltype  =                    params_str[9].split()[1 ]
+    tols     = [float(i) for i in params_str[9].split()[2:]]
+    
     reader.close()
-
+    
+    # Set minimum and maximum values of N and F
     min_N        =      1
     max_N_nat_2s =  40000
     max_N_nat_2j =   2000
     max_N_dag    =  40000
     min_F        =      0.1
     max_F        =     99.9
-
+    
     fid = 0
-
-    # Write input files and job scripts
-    for params in list(itertools.product(versions,geoms,N_vals,F_vals,mfps,tols)):
+    
+    # Write input files and job scripts for the entire parameter space
+    for params in list(itertools.product(
+                       versions,geoms,N_vals,F_vals,mfps,tols)):
         
         fid = fid+1
         
-        version = params[0]                                                         # loop for all MCNP versions
-        geom    = params[1]                                                         # loop for all geometry configurations
-        N       = params[2]                                                         # loop for all values of N
-        F       = params[3]                                                         # loop for all values of F
-        mfp     = params[4]                                                         # loop for all values of mfp
-        tol     = params[5]                                                         # loop for all values of tol
+        version = params[0] # loop for all MCNP versions
+        geom    = params[1] # loop for all geometry configurations
+        N       = params[2] # loop for all values of N
+        F       = params[3] # loop for all values of F
+        mfp     = params[4] # loop for all values of mfp
+        tol     = params[5] # loop for all values of tol
         
-        # Calculate mass density of deuterium from input number of mean free paths in 1 meter
-        # Setting the mean free path to 1 meter results in a density of 0.0078958 g/cm^3
+        # Calculate mass density of deuterium from input number of mean
+        # free paths in 1 meter; setting the mean free path to 1 meter
+        # results in a density of 0.0078958 g/cm^3
         rho = mfp*0.0078958
         
         # Determine whether parameters are valid
-        valid_version = version == 'nat' or version == 'dag'                        # version must be nat or dag
-        valid_geom = geom == '2s' or geom == '2j'                                   # geom must be 2s or 2j
+        # Version must be "nat" or "dag" and geom must be "2s" or "2j"
+        valid_version = version == 'nat' or version == 'dag'
+        valid_geom = geom == '2s' or geom == '2j'
         
-        if version == 'nat' and geom == '2s':                                       # N must be between the minimum value and maximum value
+        # N must be between the minimum value and maximum value
+        if version == 'nat' and geom == '2s':
             valid_N = N >= min_N and N <= max_N_nat_2s
         elif version == 'nat' and geom == '2j':
             valid_N = N >= min_N and N <= max_N_nat_2j
@@ -668,50 +685,90 @@ def main()
             valid_N = N >= min_N and N <= max_N_dag
         else:
             valid_N = False
+            
+        # F must be between the minimum value and maximum value
+        valid_F = F >= min_F
         
-        valid_F = F >= min_F                                                        # F must be between the minimum value and maximum value
-        valid_mfp = mfp >= 0                                                        # mfp must be greater than or equal to zero
+        # mfp must be greater than or equal to zero
+        valid_mfp = mfp >= 0
         
-        if not valid_version or not valid_geom or not valid_N or not valid_F or not valid_mfp:
+        # Do not create any files if one or more parameters are invalid
+        if (not valid_version or not valid_geom or not valid_N or
+            not valid_F or not valid_mfp):
             print 'Invalid parameters'
             continue
-
-        if version == 'nat':                                                        # maximum number of setup jobs running at once
+            
+        # Determine the maximum number of setup jobs running at once
+        if version == 'nat':
             max_concurrent = len(mfps)*2
         elif (version == 'dag') and (mfp_in == 0):
             max_concurrent = len(F_vals)
         elif (version == 'dag') and (mfp_in > 0):
             max_concurrent = len(mfps)*2
             
-        fname = determine_filename(version,geom,N,F,mfp,tol)                        # base filename (no extension)
+        # Determine base filename (no extensions)
+        fname = determine_filename(version,geom,N,F,mfp,tol)
         print fname
+        
+        # Placeholder for the filename for the case where a pre-existing
+        # LCAD file is used
         fname_in = determine_filename(version,geom,N,F,mfp,tol)
         
         # Write input files
-        if version == 'nat' and (geom == '2s' or geom == '2j'):                     # Native MCNP, 2 dimensions
-            
-            write_title(fname,geom,N,F,rho)                                         # Write title cards
-            if geom == '2s':
-                write_cells_2s(fname,geom,N,F,rho)                                  # Append cell cards; separate cells
-            elif geom == '2j':
-                write_cells_2j(fname,geom,N,F,rho)                                  # Append cell cards; joined cells
-            write_surfaces_2(fname,geom,N,F,rho)                                    # Append surface cards
-            
-        elif version == 'dag' and (geom == '2s' or geom == '2j'):                   # DAG-MCNP, 2 dimensions
-            
-            if mfp_in > 0:                                                          # Use an existing LCAD file with a different rho
-                fname_in = determine_filename(version,geom,N,F,mfp_in,tol)
-                modify_lcad(fname_in,fname,rho)
-            else:
-                write_cubit_2(fname,geom,N,F,rho)                                   # Write CUBIT instructions
-            
-        write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in)                        # Write MCNP data cards
         
-        write_setup(fname,fname_in,version,toltype,tol)                             # Write script to run CUBIT and DAGMC pre-processing and/or create runtpe file
-        write_setup_master(fname,fname_in,fid,max_concurrent)                       # Append instructions to setup file
-        write_local_run(fname,fname_in,version)                                     # Append instructions to local run file
-        write_job(fname,fname_in,version)                                           # Write ACI job file
-        write_job_master(fname)                                                     # Append instructions to master job file
+        # Native MCNP, 2 dimensions
+        if version == 'nat' and (geom == '2s' or geom == '2j'):
+            
+            # Write title card to input file
+            write_title(fname,geom,N,F,rho)
+            
+            # Append cell cards to input file
+            if geom == '2s':
+                write_cells_2s(fname,geom,N,F,rho)
+            elif geom == '2j':
+                write_cells_2j(fname,geom,N,F,rho)
+            
+            # Append surface cards to input file
+            write_surfaces_2(fname,geom,N,F,rho)
+            
+        # DAG-MCNP, 2 dimensions
+        elif version == 'dag' and (geom == '2s' or geom == '2j'):
+            
+            # Use an existing LCAD file with a different rho
+            if mfp_in > 0:
+                
+                # Use another LCAD file as the template
+                fname_in = determine_filename(version,geom,N,F,mfp_in,
+                                              tol)
+                
+                # Modify LCAD file to change density
+                modify_lcad(fname_in,fname,rho)
+            
+            # Do not use an existing LCAD file
+            else:
+                
+                # Write CUBIT instructions
+                write_cubit_2(fname,geom,N,F,rho)
+            
+        # Write MCNP data cards
+        write_data_2(fname,version,geom,N,F,rho,ctme,mfp_in)
+        
+        # Write script to create runtpe files for native runs and do
+        # CUBIT and DAGMC-preprocessing and create runtpe files for DAG
+        # runs
+        write_setup(fname,fname_in,version,toltype,tol)
+        
+        # Append instructions to master setup file
+        write_setup_master(fname,fname_in,fid,max_concurrent)
+        
+        # Append instructions to local run file
+        write_local_run(fname,fname_in,version)
+        
+        # Write ACI job script
+        write_job(fname,fname_in,version,ctme)
+        
+        # Append instructions to master job script
+        write_job_master(fname)
         
     # Write continue run script
     write_continue(ctme)
